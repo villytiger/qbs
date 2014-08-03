@@ -34,6 +34,7 @@
 
 #include "qbs_export.h"
 #include "hostosinfo.h"
+#include <QList>
 #include <QString>
 
 namespace qbs {
@@ -43,6 +44,31 @@ QBS_EXPORT QString shellInterpreter(const QString &filePath);
 QBS_EXPORT QString shellQuote(const QString &arg, HostOsInfo::HostOs os = HostOsInfo::hostOs());
 QBS_EXPORT QString shellQuote(const QString &program, const QStringList &args,
                               HostOsInfo::HostOs os = HostOsInfo::hostOs());
+
+inline static QString shellQuoteUnix(const QList<QString> &args)
+{
+    QStringList s;
+    Q_FOREACH (const QString &arg, args) {
+        s.append(shellQuoteUnix(arg));
+    }
+    return s.join(QLatin1Char(' '));
+}
+
+inline static QString shellQuoteWin(const QList<QString> &args)
+{
+    QStringList s;
+    Q_FOREACH (const QString &arg, args) {
+        s.append(shellQuoteWin(arg));
+    }
+    return s.join(QLatin1Char(' '));
+}
+
+
+inline static QString shellQuote(const QList<QString> &args)
+{
+    return HostOsInfo::isWindowsHost()
+            ? shellQuoteWin(args)
+            : shellQuoteUnix(args);
 
 } // namespace Internal
 } // namespace qbs
