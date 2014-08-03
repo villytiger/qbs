@@ -38,6 +38,8 @@
 #include <QDirIterator>
 #include <QLibrary>
 
+#include "msvs/msvsgenerator.h"
+
 namespace qbs {
 
 using namespace Internal;
@@ -59,6 +61,7 @@ ProjectGeneratorManager *ProjectGeneratorManager::instance()
 ProjectGeneratorManager::ProjectGeneratorManager()
 {
     QList<QSharedPointer<ProjectGenerator> > generators;
+    generators << qbs::MsvsGenerator::createGeneratorList();
     foreach (QSharedPointer<ProjectGenerator> generator, generators) {
         m_generators[generator->generatorName()] = generator;
     }
