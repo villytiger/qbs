@@ -200,6 +200,37 @@ static Version getMsvcVersion(const QString &compilerFilePath,
     return version;
 }
 
+static Version getDmdVersion(const QString &compilerFilePath)
+{
+    QTemporaryFile tempFile;
+    tempFile.open();
+    if (!tempFile.open())
+        throw ErrorInfo(mkStr("Could not create temporary file (%1)").arg(tempFile.errorString()));
+    tempFile.close();
+
+    QFile dummyFile(tempFile.fileName() + QLatin1String(".d"));
+    if (!dummyFile.open(QIODevice::ReadWrite))
+        throw ErrorInfo(mkStr("Could not create temporary file (%1)").arg(dummyFile.errorString()));
+    DummyFile dummyFileRemover(dummyFile.fileName());
+    dummyFile.write("module versionprober; import std.stdio; void main() {writeln(__VERSION__);}");
+    dummyFile.close();
+
+    const QStringList compilerArgs = QStringList() << QLatin1String("-run") << dummyFile.fileName();
+    const QByteArray compilerOutput = runProcess(compilerFilePath, compilerArgs);
+    bool ok;
+    int versionInteger = compilerOutput.toInt(&ok);
+    if (!ok)
+        throw ErrorInfo(mkStr("Could not extract version from compiler output."));
+
+    int major = versionInteger / 1000;
+    int minor = versionInteger % 1000;
+
+    const Version version(major, minor, 0, 0);
+    if (!version.isValid())
+        throw ErrorInfo(mkStr("Failed to extract version from compiler output."));
+    return version;
+}
+
 
 void setCompilerVersion(const QString &compilerFilePath, const QStringList &qbsToolchain,
                         Profile &profile, const QProcessEnvironment &compilerEnv)
@@ -210,6 +241,8 @@ void setCompilerVersion(const QString &compilerFilePath, const QStringList &qbsT
             version = getGccVersion(compilerFilePath, qbsToolchain);
         else if (qbsToolchain.contains(QLatin1String("msvc")))
             version = getMsvcVersion(compilerFilePath, compilerEnv);
+        else if (qbsToolchain.contains(QLatin1String("dmd")))
+            version = getDmdVersion(compilerFilePath);
         if (version.isValid()) {
             profile.setValue(QLatin1String("cpp.compilerVersionMajor"), version.majorVersion());
             profile.setValue(QLatin1String("cpp.compilerVersionMinor"), version.minorVersion());

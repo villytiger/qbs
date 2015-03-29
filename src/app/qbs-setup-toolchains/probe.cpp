@@ -130,6 +130,8 @@ static void setupCompilerPathByLanguage(Profile &profile, const QStringList &too
     } else if (toolchainTypes.contains("gcc")) {
         m["c"] = m["objc"] = QLatin1String("gcc");
         m["cpp"] = m["objcpp"] = QLatin1String("g++");
+    } else if (toolchainTypes.contains("dmd")) {
+        m["d"] = QLatin1String("dmd");
     } else {
         qDebug("WARNING: unexpected toolchain %s", qPrintable(toJSLiteral(toolchainTypes)));
         return;
@@ -285,6 +287,35 @@ static void mingwProbe(Settings *settings, QList<Profile> &profiles)
     }
 }
 
+static Profile createDmdProfile(const QString &compilerFilePath, Settings *settings)
+{
+    QString architecture;
+    if (HostOsInfo::isWindowsHost())
+        architecture = "x86";
+    else
+        architecture = qsystem("uname", QStringList() << QLatin1String("-m")).trimmed();
+
+    Profile profile("dmd", settings);
+    profile.removeProfile();
+
+    profile.setValue(QLatin1String("cpp.linkerName"), QLatin1String("dmd"));
+    setCommonProperties(profile, compilerFilePath, QString(), QStringList() << QLatin1String("dmd"),
+                        architecture);
+
+    qStdout << Tr::tr("Profile '%1' created for '%2'.").arg(profile.name(), compilerFilePath)
+            << endl;
+    return profile;
+}
+
+static void dmdProbe(Settings *settings, QList<Profile> &profiles)
+{
+    qStdout << Tr::tr("Trying to detect dmd...") << endl;
+
+    const QString dmdPath = findExecutable(HostOsInfo::appendExecutableSuffix("dmd"));
+    if (!dmdPath.isEmpty())
+        profiles << createDmdProfile(dmdPath, settings);
+}
+
 void probe(Settings *settings)
 {
     QList<Profile> profiles;
@@ -300,6 +331,7 @@ void probe(Settings *settings)
     }
 
     mingwProbe(settings, profiles);
+    dmdProbe(settings, profiles);
 
     if (profiles.isEmpty()) {
         qStderr << Tr::tr("Could not detect any toolchains. No profile created.") << endl;
