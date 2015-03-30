@@ -1,0 +1,16 @@
+profiles.multi.d.compilerName: dmd
+profiles.multi.d.compilerPathByLanguage: {"d":"/usr/bin/dmd"}
+profiles.multi.d.compilerVersionMajor: 2
+profiles.multi.d.compilerVersionMinor: 67
+profiles.multi.d.compilerVersionPatch: 0
+profiles.multi.d.linkerName: dmd
+profiles.multi.d.toolchainInstallPath: /usr/bin
+profiles.multi.cpp.compilerName: gcc
+profiles.multi.cpp.compilerPathByLanguage: {"c":"/usr/bin/gcc","cpp":"/usr/bin/g++","objc":"/usr/bin/gcc","objcpp":"/usr/bin/g++"}
+profiles.multi.cpp.compilerVersionMajor: 4
+profiles.multi.cpp.compilerVersionMinor: 9
+profiles.multi.cpp.compilerVersionPatch: 2
+profiles.multi.cpp.linkerName: g++
+profiles.multi.cpp.toolchainInstallPath: /usr/bin
+profiles.multi.qbs.architecture: x86_64
+profiles.multi.qbs.toolchain: ["dmd", "gcc"]
