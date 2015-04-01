@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2015 The Qt Company Ltd.
+** Copyright (C) 2015 Jake Petroules.
 ** Contact: http://www.qt.io/licensing
 **
 ** This file is part of the Qt Build Suite.
@@ -28,47 +28,57 @@
 **
 ****************************************************************************/
 
-#ifndef QBS_JSCOMMANDEXECUTOR_H
-#define QBS_JSCOMMANDEXECUTOR_H
+#include "commandechomode.h"
 
-#include "abstractcommandexecutor.h"
-
-#include <QString>
+/*!
+ * \enum CommandEchoMode
+ * This enum type specifies the kind of output to display when executing commands.
+ * \value CommandEchoModeSilent Indicates that no output will be printed.
+ * \value CommandEchoModeSummary Indicates that descriptions will be printed.
+ * \value CommandEchoModeCommandLine Indidcates that full command line invocations will be printed.
+ */
 
 namespace qbs {
-class CodeLocation;
 
-namespace Internal {
-class JavaScriptCommand;
-class JsCommandExecutorThreadObject;
-
-class JsCommandExecutor : public AbstractCommandExecutor
+CommandEchoMode defaultCommandEchoMode()
 {
-    Q_OBJECT
-public:
-    explicit JsCommandExecutor(const Logger &logger, QObject *parent = 0);
-    ~JsCommandExecutor();
+    return CommandEchoModeSummary;
+}
 
-signals:
-    void startRequested(const JavaScriptCommand *cmd, Transformer *transformer);
+QString commandEchoModeName(CommandEchoMode mode)
+{
+    switch (mode) {
+    case CommandEchoModeSilent:
+        return QLatin1String("silent");
+    case CommandEchoModeSummary:
+        return QLatin1String("summary");
+    case CommandEchoModeCommandLine:
+        return QLatin1String("command-line");
+    default:
+        break;
+    }
+    return QString();
+}
 
-private slots:
-    void onJavaScriptCommandFinished();
+CommandEchoMode commandEchoModeFromName(const QString &name)
+{
+    CommandEchoMode mode = defaultCommandEchoMode();
+    for (int i = 0; i <= static_cast<int>(CommandEchoModeLast); ++i) {
+        if (commandEchoModeName(static_cast<CommandEchoMode>(i)) == name) {
+            mode = static_cast<CommandEchoMode>(i);
+            break;
+        }
+    }
 
-private:
-    void doStart();
-    void cancel();
+    return mode;
+}
 
-    void waitForFinished();
+QStringList allCommandEchoModeStrings()
+{
+    QStringList result;
+    for (int i = 0; i <= static_cast<int>(CommandEchoModeLast); ++i)
+        result << commandEchoModeName(static_cast<CommandEchoMode>(i));
+    return result;
+}
 
-    const JavaScriptCommand *jsCommand() const;
-
-    QThread *m_thread;
-    JsCommandExecutorThreadObject *m_objectInThread;
-    bool m_running;
-};
-
-} // namespace Internal
 } // namespace qbs
-
-#endif // QBS_JSCOMMANDEXECUTOR_H

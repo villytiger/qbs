@@ -9,8 +9,8 @@
 ** Licensees holding valid commercial Qt licenses may use this file in
 ** accordance with the commercial license agreement provided with the
 ** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company.  For licensing terms and
-** conditions see http://www.qt.io/terms-conditions.  For further information
+** a written agreement between you and The Qt Company. For licensing terms and
+** conditions see http://www.qt.io/terms-conditions. For further information
 ** use the contact form at http://www.qt.io/contact-us.
 **
 ** GNU Lesser General Public License Usage
@@ -81,6 +81,14 @@ QString Preferences::shell() const
 QString Preferences::defaultBuildDirectory() const
 {
     return getPreference(QLatin1String("defaultBuildDirectory")).toString();
+}
+
+/*!
+ * \brief Returns the default echo mode used by Qbs if none is specified.
+ */
+CommandEchoMode Preferences::defaultEchoMode() const
+{
+    return commandEchoModeFromName(getPreference(QLatin1String("defaultEchoMode")).toString());
 }
 
 /*!

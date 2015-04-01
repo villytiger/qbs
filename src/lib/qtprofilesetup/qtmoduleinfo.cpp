@@ -9,8 +9,8 @@
 ** Licensees holding valid commercial Qt licenses may use this file in
 ** accordance with the commercial license agreement provided with the
 ** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company.  For licensing terms and
-** conditions see http://www.qt.io/terms-conditions.  For further information
+** a written agreement between you and The Qt Company. For licensing terms and
+** conditions see http://www.qt.io/terms-conditions. For further information
 ** use the contact form at http://www.qt.io/contact-us.
 **
 ** GNU Lesser General Public License Usage
@@ -318,7 +318,7 @@ static void addDesignerComponentsModule(QList<QtModuleInfo> &modules)
 
 QList<QtModuleInfo> allQt4Modules(const QtEnvironment &qtEnvironment)
 {
-    // as per http://qt-project.org/doc/qt-4.8/modules.html + private stuff.
+    // as per http://doc.qt.io/qt-4.8/modules.html + private stuff.
     QList<QtModuleInfo> modules;
 
     QtModuleInfo core(QLatin1String("QtCore"), QLatin1String("core"));

@@ -9,8 +9,8 @@
 ** Licensees holding valid commercial Qt licenses may use this file in
 ** accordance with the commercial license agreement provided with the
 ** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company.  For licensing terms and
-** conditions see http://www.qt.io/terms-conditions.  For further information
+** a written agreement between you and The Qt Company. For licensing terms and
+** conditions see http://www.qt.io/terms-conditions. For further information
 ** use the contact form at http://www.qt.io/contact-us.
 **
 ** GNU Lesser General Public License Usage
@@ -36,6 +36,7 @@
 #include <QBrush>
 #endif
 
+#include <QJsonDocument>
 #include <QList>
 #include <QScopedPointer>
 #include <QString>
@@ -372,22 +373,12 @@ QString settingsValueToRepresentation(const QVariant &value)
     return toJSLiteral(value);
 }
 
-static QVariant variantFromString(const QString &str)
-{
-    // ### use Qt5's JSON reader at some point.
-    QScriptEngine engine;
-    QScriptValue sv = engine.evaluate(QLatin1String("(function(){return ")
-                                      + str + QLatin1String(";})()"));
-    if (sv.isError())
-        return QVariant();
-    return sv.toVariant();
-}
-
 QVariant representationToSettingsValue(const QString &representation)
 {
-    const QVariant variant = variantFromString(representation);
-    if (variant.isValid())
-        return variant;
+    QJsonParseError error;
+    const QJsonDocument doc = QJsonDocument::fromJson(representation.toUtf8(), &error);
+    if (error.error == QJsonParseError::NoError)
+        return doc.toVariant();
 
     // If it's not valid JavaScript, interpret the value as a string.
     return representation;

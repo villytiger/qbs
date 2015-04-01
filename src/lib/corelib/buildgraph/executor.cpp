@@ -9,8 +9,8 @@
 ** Licensees holding valid commercial Qt licenses may use this file in
 ** accordance with the commercial license agreement provided with the
 ** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company.  For licensing terms and
-** conditions see http://www.qt.io/terms-conditions.  For further information
+** a written agreement between you and The Qt Company. For licensing terms and
+** conditions see http://www.qt.io/terms-conditions. For further information
 ** use the contact form at http://www.qt.io/contact-us.
 **
 ** GNU Lesser General Public License Usage
@@ -670,7 +670,7 @@ void Executor::addExecutorJobs()
         job->setMainThreadScriptEngine(m_evalContext->engine());
         job->setObjectName(QString::fromLatin1("J%1").arg(i));
         job->setDryRun(m_buildOptions.dryRun());
-        job->setShowCommandLines(m_buildOptions.showCommandLines());
+        job->setEchoMode(m_buildOptions.echoMode());
         m_availableJobs.append(job);
         connect(job, SIGNAL(reportCommandDescription(QString,QString)),
                 this, SIGNAL(reportCommandDescription(QString,QString)), Qt::QueuedConnection);

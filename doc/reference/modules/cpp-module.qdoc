@@ -9,8 +9,8 @@
 ** Licensees holding valid commercial Qt licenses may use this file in
 ** accordance with the commercial license agreement provided with the
 ** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company.  For licensing terms and
-** conditions see http://www.qt.io/terms-conditions.  For further information
+** a written agreement between you and The Qt Company. For licensing terms and
+** conditions see http://www.qt.io/terms-conditions. For further information
 ** use the contact form at http://www.qt.io/contact-us.
 **
 ** GNU Lesser General Public License Usage
@@ -78,8 +78,7 @@
     \row    \li \b{Default:}         \li \c{false} for gcc/clang, \c{true} for MSVC
     \endtable
 
-    The file name that is used for external debug information.
-    \note This property is ignored for OS X toolchains.
+    Whether to store debug information in an external file or bundle instead of within the binary.
 
     \section2 defines
 

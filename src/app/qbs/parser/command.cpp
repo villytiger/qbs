@@ -9,8 +9,8 @@
 ** Licensees holding valid commercial Qt licenses may use this file in
 ** accordance with the commercial license agreement provided with the
 ** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company.  For licensing terms and
-** conditions see http://www.qt.io/terms-conditions.  For further information
+** a written agreement between you and The Qt Company. For licensing terms and
+** conditions see http://www.qt.io/terms-conditions. For further information
 ** use the contact form at http://www.qt.io/contact-us.
 **
 ** GNU Lesser General Public License Usage
@@ -248,7 +248,7 @@ static QList<CommandLineOption::Type> buildOptions()
             << CommandLineOption::ChangedFilesOptionType
             << CommandLineOption::ForceTimestampCheckOptionType
             << CommandLineOption::BuildNonDefaultOptionType
-            << CommandLineOption::ShowCommandLinesOptionType
+            << CommandLineOption::CommandEchoModeOptionType
             << CommandLineOption::NoInstallOptionType
             << CommandLineOption::RemoveFirstOptionType;
 }
@@ -282,7 +282,7 @@ QList<CommandLineOption::Type> CleanCommand::supportedOptions() const
     options.removeOne(CommandLineOption::ChangedFilesOptionType);
     options.removeOne(CommandLineOption::JobsOptionType);
     options.removeOne(CommandLineOption::BuildNonDefaultOptionType);
-    options.removeOne(CommandLineOption::ShowCommandLinesOptionType);
+    options.removeOne(CommandLineOption::CommandEchoModeOptionType);
     return options << CommandLineOption::AllArtifactsOptionType;
 }
 

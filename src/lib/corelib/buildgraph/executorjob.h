@@ -9,8 +9,8 @@
 ** Licensees holding valid commercial Qt licenses may use this file in
 ** accordance with the commercial license agreement provided with the
 ** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company.  For licensing terms and
-** conditions see http://www.qt.io/terms-conditions.  For further information
+** a written agreement between you and The Qt Company. For licensing terms and
+** conditions see http://www.qt.io/terms-conditions. For further information
 ** use the contact form at http://www.qt.io/contact-us.
 **
 ** GNU Lesser General Public License Usage
@@ -32,6 +32,7 @@
 #define QBS_EXECUTORJOB_H
 
 #include <language/forward_decls.h>
+#include <tools/commandechomode.h>
 #include <tools/error.h>
 
 #include <QObject>
@@ -58,7 +59,7 @@ public:
 
     void setMainThreadScriptEngine(ScriptEngine *engine);
     void setDryRun(bool enabled);
-    void setShowCommandLines(bool enabled);
+    void setEchoMode(CommandEchoMode echoMode);
     void run(Transformer *t);
     void cancel();
 

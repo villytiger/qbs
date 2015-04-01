@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2015 The Qt Company Ltd.
+** Copyright (C) 2015 Jake Petroules.
 ** Contact: http://www.qt.io/licensing
 **
 ** This file is part of the Qt Build Suite.
@@ -28,47 +28,28 @@
 **
 ****************************************************************************/
 
-#ifndef QBS_JSCOMMANDEXECUTOR_H
-#define QBS_JSCOMMANDEXECUTOR_H
+#ifndef QBS_COMMANDECHOMODE_H
+#define QBS_COMMANDECHOMODE_H
 
-#include "abstractcommandexecutor.h"
-
+#include "qbs_export.h"
 #include <QString>
+#include <QStringList>
 
 namespace qbs {
-class CodeLocation;
 
-namespace Internal {
-class JavaScriptCommand;
-class JsCommandExecutorThreadObject;
-
-class JsCommandExecutor : public AbstractCommandExecutor
-{
-    Q_OBJECT
-public:
-    explicit JsCommandExecutor(const Logger &logger, QObject *parent = 0);
-    ~JsCommandExecutor();
-
-signals:
-    void startRequested(const JavaScriptCommand *cmd, Transformer *transformer);
-
-private slots:
-    void onJavaScriptCommandFinished();
-
-private:
-    void doStart();
-    void cancel();
-
-    void waitForFinished();
-
-    const JavaScriptCommand *jsCommand() const;
-
-    QThread *m_thread;
-    JsCommandExecutorThreadObject *m_objectInThread;
-    bool m_running;
+enum CommandEchoMode {
+    CommandEchoModeSilent,
+    CommandEchoModeSummary,
+    CommandEchoModeCommandLine,
+    CommandEchoModeLast = CommandEchoModeCommandLine
 };
 
-} // namespace Internal
+QBS_EXPORT CommandEchoMode defaultCommandEchoMode();
+QBS_EXPORT QString commandEchoModeName(CommandEchoMode mode);
+QBS_EXPORT CommandEchoMode commandEchoModeFromName(const QString &name);
+QBS_EXPORT QStringList allCommandEchoModeStrings();
+
 } // namespace qbs
 
-#endif // QBS_JSCOMMANDEXECUTOR_H
+#endif // QBS_COMMANDECHOMODE_H
+

@@ -9,8 +9,8 @@
 ** Licensees holding valid commercial Qt licenses may use this file in
 ** accordance with the commercial license agreement provided with the
 ** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company.  For licensing terms and
-** conditions see http://www.qt.io/terms-conditions.  For further information
+** a written agreement between you and The Qt Company. For licensing terms and
+** conditions see http://www.qt.io/terms-conditions. For further information
 ** use the contact form at http://www.qt.io/contact-us.
 **
 ** GNU Lesser General Public License Usage
@@ -38,6 +38,7 @@
 #include <language/scriptengine.h>
 #include <logging/logger.h>
 #include <logging/translator.h>
+#include <tools/commandechomode.h>
 #include <tools/error.h>
 #include <tools/executablefinder.h>
 #include <tools/fileinfo.h>
@@ -58,7 +59,6 @@ namespace Internal {
 
 ProcessCommandExecutor::ProcessCommandExecutor(const Logger &logger, QObject *parent)
     : AbstractCommandExecutor(logger, parent)
-    , m_showCommandLines(false)
 {
     connect(&m_process, SIGNAL(error(QProcess::ProcessError)),  SLOT(onProcessError()));
     connect(&m_process, SIGNAL(finished(int)), SLOT(onProcessFinished(int)));
@@ -272,7 +272,7 @@ void ProcessCommandExecutor::onProcessFinished(int exitCode)
 
 void ProcessCommandExecutor::doReportCommandDescription()
 {
-    if (m_showCommandLines) {
+    if (m_echoMode == CommandEchoModeCommandLine) {
         const ProcessCommand * const cmd = processCommand();
         emit reportCommandDescription(QString(),
                                       cmd->program() + QLatin1Char(' ')

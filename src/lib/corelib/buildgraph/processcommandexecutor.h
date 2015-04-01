@@ -9,8 +9,8 @@
 ** Licensees holding valid commercial Qt licenses may use this file in
 ** accordance with the commercial license agreement provided with the
 ** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company.  For licensing terms and
-** conditions see http://www.qt.io/terms-conditions.  For further information
+** a written agreement between you and The Qt Company. For licensing terms and
+** conditions see http://www.qt.io/terms-conditions. For further information
 ** use the contact form at http://www.qt.io/contact-us.
 **
 ** GNU Lesser General Public License Usage
@@ -49,7 +49,6 @@ class ProcessCommandExecutor : public AbstractCommandExecutor
 public:
     explicit ProcessCommandExecutor(const Internal::Logger &logger, QObject *parent = 0);
 
-    void setShowCommandLines(bool enabled) { m_showCommandLines = enabled;}
     void setProcessEnvironment(const QProcessEnvironment &processEnvironment) {
         m_buildEnvironment = processEnvironment;
     }
@@ -77,7 +76,6 @@ private:
     QStringList m_arguments;
 
     QProcess m_process;
-    bool m_showCommandLines;
     QProcessEnvironment m_buildEnvironment;
     QString m_responseFileName;
 };

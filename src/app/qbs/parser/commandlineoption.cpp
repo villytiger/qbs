@@ -9,8 +9,8 @@
 ** Licensees holding valid commercial Qt licenses may use this file in
 ** accordance with the commercial license agreement provided with the
 ** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company.  For licensing terms and
-** conditions see http://www.qt.io/terms-conditions.  For further information
+** a written agreement between you and The Qt Company. For licensing terms and
+** conditions see http://www.qt.io/terms-conditions. For further information
 ** use the contact form at http://www.qt.io/contact-us.
 **
 ** GNU Lesser General Public License Usage
@@ -45,6 +45,11 @@ void CommandLineOption::parse(CommandType command, const QString &representation
 {
     m_command = command;
     doParse(representation, input);
+}
+
+CommandLineOption::CommandLineOption()
+    : m_command(static_cast<CommandType>(-1))
+{
 }
 
 QString CommandLineOption::getArgument(const QString &representation, QStringList &input)
@@ -563,16 +568,47 @@ void SettingsDirOption::doParse(const QString &representation, QStringList &inpu
     m_settingsDir = input.takeFirst();
 }
 
-QString ShowCommandLinesOption::description(CommandType command) const
+CommandEchoModeOption::CommandEchoModeOption()
+    : m_echoMode(static_cast<CommandEchoMode>(-1))
 {
-    Q_UNUSED(command);
-    return Tr::tr("%1\n\tShow command lines instead of command descriptions.\n")
-            .arg(longRepresentation());
 }
 
-QString ShowCommandLinesOption::longRepresentation() const
+QString CommandEchoModeOption::description(CommandType command) const
 {
-    return QLatin1String("--show-command-lines");
+    Q_UNUSED(command);
+    return Tr::tr("%1 <mode>\n"
+                  "\tKind of output to show when executing commands.\n"
+                  "\tPossible values are '%2'.\n"
+                  "\tThe default is '%3'.\n")
+            .arg(longRepresentation(), allCommandEchoModeStrings().join(QLatin1String("', '")),
+                 commandEchoModeName(defaultCommandEchoMode()));
+}
+
+QString CommandEchoModeOption::longRepresentation() const
+{
+    return QLatin1String("--command-echo-mode");
+}
+
+CommandEchoMode CommandEchoModeOption::commandEchoMode() const
+{
+    return m_echoMode;
+}
+
+void CommandEchoModeOption::doParse(const QString &representation, QStringList &input)
+{
+    const QString mode = getArgument(representation, input);
+    if (mode.isEmpty()) {
+        throw ErrorInfo(Tr::tr("Invalid use of option '%1': No command echo mode given.\nUsage: %2")
+                    .arg(representation, description(command())));
+    }
+
+    if (!allCommandEchoModeStrings().contains(mode)) {
+        throw ErrorInfo(Tr::tr("Invalid use of option '%1': "
+                               "Invalid command echo mode '%2' given.\nUsage: %3")
+                        .arg(representation, mode, description(command())));
+    }
+
+    m_echoMode = commandEchoModeFromName(mode);
 }
 
 } // namespace qbs

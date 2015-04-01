@@ -9,8 +9,8 @@
 ** Licensees holding valid commercial Qt licenses may use this file in
 ** accordance with the commercial license agreement provided with the
 ** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and The Qt Company.  For licensing terms and
-** conditions see http://www.qt.io/terms-conditions.  For further information
+** a written agreement between you and The Qt Company. For licensing terms and
+** conditions see http://www.qt.io/terms-conditions. For further information
 ** use the contact form at http://www.qt.io/contact-us.
 **
 ** GNU Lesser General Public License Usage
@@ -82,6 +82,8 @@ public:
     bool dryRun() const;
     QString settingsDir() const { return  optionPool.settingsDirOption()->settingsDir(); }
 
+    CommandEchoMode echoMode() const;
+
     QString propertyName(const QString &aCommandLineName) const;
 
     QStringList commandLine;
@@ -141,19 +143,30 @@ QString CommandLineParser::projectBuildDirectory() const
     return d->projectBuildDirectory;
 }
 
-BuildOptions CommandLineParser::buildOptions() const
+BuildOptions CommandLineParser::buildOptions(const QString &profile) const
 {
+    Settings settings(settingsDir());
+    Preferences preferences(&settings, profile);
+
+    if (d->buildOptions.maxJobCount() <= 0) {
+        d->buildOptions.setMaxJobCount(preferences.jobs());
+    }
+
+    if (d->buildOptions.echoMode() < 0) {
+        d->buildOptions.setEchoMode(preferences.defaultEchoMode());
+    }
+
     return d->buildOptions;
 }
 
-CleanOptions CommandLineParser::cleanOptions() const
+CleanOptions CommandLineParser::cleanOptions(const QString &profile) const
 {
     Q_ASSERT(command() == CleanCommandType);
     CleanOptions options;
     options.setCleanType(d->optionPool.allArtifactsOption()->enabled()
                          ? CleanOptions::CleanupAll : CleanOptions::CleanupTemporaries);
-    options.setDryRun(buildOptions().dryRun());
-    options.setKeepGoing(buildOptions().keepGoing());
+    options.setDryRun(buildOptions(profile).dryRun());
+    options.setKeepGoing(buildOptions(profile).keepGoing());
     options.setLogElapsedTime(logTime());
     return options;
 }
@@ -166,7 +179,7 @@ GenerateOptions CommandLineParser::generateOptions() const
     return options;
 }
 
-InstallOptions CommandLineParser::installOptions() const
+InstallOptions CommandLineParser::installOptions(const QString &profile) const
 {
     Q_ASSERT(command() == InstallCommandType || command() == RunCommandType
              || command() == GenerateCommandType);
@@ -179,8 +192,8 @@ InstallOptions CommandLineParser::installOptions() const
         if (!fi.isAbsolute())
             options.setInstallRoot(fi.absoluteFilePath());
     }
-    options.setDryRun(buildOptions().dryRun());
-    options.setKeepGoing(buildOptions().keepGoing());
+    options.setDryRun(buildOptions(profile).dryRun());
+    options.setKeepGoing(buildOptions(profile).keepGoing());
     options.setLogElapsedTime(logTime());
     return options;
 }
@@ -490,7 +503,7 @@ void CommandLineParser::CommandLineParserPrivate::setupBuildOptions()
     const JobsOption * jobsOption = optionPool.jobsOption();
     buildOptions.setMaxJobCount(jobsOption->jobCount());
     buildOptions.setLogElapsedTime(logTime);
-    buildOptions.setShowCommandLines(optionPool.showCommandLinesOption()->enabled());
+    buildOptions.setEchoMode(echoMode());
     buildOptions.setInstall(!optionPool.noInstallOption()->enabled());
     buildOptions.setRemoveExistingInstallation(optionPool.removeFirstoption()->enabled());
 }
@@ -595,6 +608,17 @@ bool CommandLineParser::CommandLineParserPrivate::dryRun() const
      if (command->type() == GenerateCommandType)
          return true;
      return optionPool.dryRunOption()->enabled();
+}
+
+CommandEchoMode CommandLineParser::CommandLineParserPrivate::echoMode() const
+{
+    if (command->type() == GenerateCommandType)
+        return CommandEchoModeSilent;
+
+    if (optionPool.commandEchoModeOption()->commandEchoMode() >= 0)
+        return optionPool.commandEchoModeOption()->commandEchoMode();
+
+    return defaultCommandEchoMode();
 }
 
 } // namespace qbs
