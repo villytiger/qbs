@@ -97,14 +97,15 @@ function configFlags(config) {
     var args = [];
 
     var arch = ModUtils.moduleProperty(config, "architecture")
-    if (config.moduleProperty("qbs", "toolchain").contains("llvm") &&
-        config.moduleProperty("qbs", "targetOS").contains("darwin")) {
-        args.push("-arch");
-        args.push(arch === "x86" ? "i386" : arch);
+    if (config.moduleProperty("qbs", "targetOS").contains("darwin")) {
+        for (var i in arch) {
+            args.push("-arch");
+            args.push(arch === "x86" ? "i386" : arch[i]);
+        }
     } else {
-        if (arch === 'x86_64')
+        if (arch == 'x86_64')
             args.push('-m64');
-        else if (arch === 'x86')
+        else if (arch == 'x86')
             args.push('-m32');
     }
 

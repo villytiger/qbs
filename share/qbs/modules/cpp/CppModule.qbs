@@ -7,7 +7,7 @@ Module {
     property int compilerVersionPatch
     property string warningLevel : 'all' // 'none', 'all'
     property bool treatWarningsAsErrors : false
-    property string architecture: qbs.architecture
+    property stringList architecture: qbs.architecture
     property string optimization: qbs.optimization
     property bool debugInformation: qbs.debugInformation
     property bool separateDebugInformation: false

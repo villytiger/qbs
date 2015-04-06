@@ -183,7 +183,7 @@ Module {
             }
 
             // QBS uses "x86_64", Microsoft uses "x64"
-            if (arch === "x86_64") {
+            if (arch == "x86_64") {
                 arch = "x64";
             }
 
@@ -251,7 +251,7 @@ Module {
                 }
 
                 // Helper define for alternating between 32-bit and 64-bit logic
-                if (arch === "x64" || arch === "ia64") {
+                if (arch == "x64" || arch == "ia64") {
                     args.push("-dWin64");
                 }
             }

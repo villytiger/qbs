@@ -164,7 +164,7 @@ Module {
                 args.push(opt + "Dqbs.architecture=" + arch);
 
                 // Helper define for alternating between 32-bit and 64-bit logic
-                if (arch === "x86_64" || arch === "ia64") {
+                if (arch == "x86_64" || arch == "ia64") {
                     args.push(opt + "DWin64");
                 }
             }

@@ -37,7 +37,7 @@ Module {
     property string pathSeparator: hostOS.contains("windows") ? "\\" : "/"
     property string profile
     property stringList toolchain
-    property string architecture
+    property stringList architecture
     property bool install: false
     property string installSourceBase
     readonly property string installRoot: undefined
@@ -78,9 +78,21 @@ Module {
         }
 
         validator.addCustomValidator("architecture", architecture, function (value) {
-            return architecture === canonicalArchitecture(architecture);
-        }, "'" + architecture + "' is invalid. You must use the canonical name '" +
-        canonicalArchitecture(architecture) + "'");
+            for (var i in architecture) {
+                if (architecture[i] !== canonicalArchitecture(architecture[i]))
+                    return false;
+            }
+            return true;
+        }, "'" + architecture + "' is invalid. You must use canonical names '" +
+        architecture.map(function (a) {
+            return canonicalArchitecture(a);
+        }) + "'");
+
+        validator.addCustomValidator("architecture", architecture, function (value) {
+            return architecture.length == 1 || (architecture > 1 && qbs.targetOS.contains("darwin"));
+        }, "you must specify at least one architecture; " +
+        "only iOS and OSX support multiple architectures; " +
+        "you might want to re-run 'qbs-setup-toolchains'");
 
         validator.validate();
     }
