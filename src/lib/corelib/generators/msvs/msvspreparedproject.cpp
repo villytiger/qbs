@@ -66,8 +66,8 @@ void MsvsPreparedProject::prepare(const Project& qbsProject,
             QSharedPointer<MsvsPreparedProduct> product(new MsvsPreparedProduct());
             product->guid = QUuid::createUuid().toString();
             product->name = productData.name();
-            QString buildDirectory = productData.properties().value("buildDirectory").toString();
-            product->isApplication = productData.properties().value("type").toStringList().contains("application");
+            QString buildDirectory = productData.properties().value(QLatin1String("buildDirectory")).toString();
+            product->isApplication = productData.properties().value(QLatin1String("type")).toStringList().contains(QLatin1String("application"));
             QString fullPath = qbsProject.targetExecutable(productData, installOptions);
             if (!fullPath.isEmpty()) {
                 product->targetName = QFileInfo(fullPath).fileName();
@@ -78,7 +78,7 @@ void MsvsPreparedProject::prepare(const Project& qbsProject,
             }
             if (product->targetPath.isEmpty())
                 product->targetPath = buildDirectory;
-            product->targetPath += "/";
+            product->targetPath += QLatin1String("/");
             products.insert(product->name, product);
         }
         products[productData.name()]->configurations[config] = productData;
@@ -104,31 +104,31 @@ MsvsProjectConfiguration::MsvsProjectConfiguration(const Project &project)
 
     // Select VS platform display name. It doesn't interfere with compilation settings.
     QMap<QString, QString> qbsToVSArch;
-    qbsToVSArch["x86"] = "Win32";
-    qbsToVSArch["x86_64"] = "Win64";
-    qbsToVSArch["ia64"] = "Itanium";
-    qbsToVSArch["arm"] = "Arm";
-    qbsToVSArch["arm64"] = "Arm64";
+    qbsToVSArch[QLatin1String("x86")] = QLatin1String("Win32");
+    qbsToVSArch[QLatin1String("x86_64")] = QLatin1String("Win64");
+    qbsToVSArch[QLatin1String("ia64")] = QLatin1String("Itanium");
+    qbsToVSArch[QLatin1String("arm")] = QLatin1String("Arm");
+    qbsToVSArch[QLatin1String("arm64")] = QLatin1String("Arm64");
     if (!qbsToVSArch.contains(architecture)) {
         qWarning() << "Naming qbs platform \"" << architecture << "\" as \"Win32\" for VS project.";
     }
-    platform = qbsToVSArch.value(architecture, "Win32");
+    platform = qbsToVSArch.value(architecture, QLatin1String("Win32"));
 }
 
 QString MsvsProjectConfiguration::cleanProfileName() const
 {
     QString result = profile;
-    return result.replace(QRegExp("\\W+"), "");
+    return result.replace(QRegExp(QLatin1String("\\W+")), QLatin1String(""));
 }
 
 QString MsvsProjectConfiguration::fullName() const
 {
-    return QString("%1-%2|%3").arg(cleanProfileName()).arg(variant).arg(platform);
+    return QString::fromLocal8Bit("%1-%2|%3").arg(cleanProfileName()).arg(variant).arg(platform);
 }
 
 QString MsvsProjectConfiguration::profileAndVariant() const
 {
-    return QString("%1-%2").arg(cleanProfileName()).arg(variant);
+    return QString::fromLocal8Bit("%1-%2").arg(cleanProfileName()).arg(variant);
 }
 
 bool MsvsProjectConfiguration::operator <(const MsvsProjectConfiguration &right) const
@@ -146,7 +146,7 @@ bool MsvsProjectConfiguration::operator ==(const MsvsProjectConfiguration &right
 
 quint32 qbs::qHash(const MsvsProjectConfiguration &config)
 {
-    return qHash(QString("%1-%2|%3").arg(config.profile).arg(config.variant).arg(config.platform));
+    return qHash(QString::fromLocal8Bit("%1-%2|%3").arg(config.profile).arg(config.variant).arg(config.platform));
 }
 
 QStringList MsvsPreparedProduct::uniquePlatforms() const

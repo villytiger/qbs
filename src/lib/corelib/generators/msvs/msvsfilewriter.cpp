@@ -43,11 +43,11 @@
 using namespace qbs;
 
 // Project file GUID (Do NOT change!)
-static const QString _GUIDProjectFolder = "{2150E333-8FDC-42A3-9474-1A3956D46DE8}";
+static const QString _GUIDProjectFolder = QLatin1String("{2150E333-8FDC-42A3-9474-1A3956D46DE8}");
 
 // Project file format specific options (Do NOT change!)
-static const QString _VcprojNmakeConfig = "0";
-static const QString _VcprojListsSeparator = ";";
+static const QString _VcprojNmakeConfig = QLatin1String("0");
+static const QString _VcprojListsSeparator = QLatin1String(";");
 
 MsvsFileWriter::MsvsFileWriter(const VersionOptions &versionOptions,
                                const QString &qbsExecutablePath,
@@ -63,12 +63,12 @@ MsvsFileWriter::MsvsFileWriter(const VersionOptions &versionOptions,
     , m_installRoot(installRoot)
 {
     // TODO: retrieve tags from groupData.
-    m_filterOptions << FilterOptions("c;C;cpp;cxx;c++;cc;def;m;mm", "Source Files");
-    m_filterOptions << FilterOptions("h;H;hpp;hxx;h++", "Header Files");
-    m_filterOptions << FilterOptions("ui", "Form Files");
-    m_filterOptions << FilterOptions("qrc;rc;*", "Resource Files", "ParseFiles");
-    m_filterOptions << FilterOptions("moc", "Generated Files", "SourceControlFiles");
-    m_filterOptions << FilterOptions("ts", "Translation Files", "ParseFiles");
+    m_filterOptions << FilterOptions(QLatin1String("c;C;cpp;cxx;c++;cc;def;m;mm"), QLatin1String("Source Files"));
+    m_filterOptions << FilterOptions(QLatin1String("h;H;hpp;hxx;h++"), QLatin1String("Header Files"));
+    m_filterOptions << FilterOptions(QLatin1String("ui"), QLatin1String("Form Files"));
+    m_filterOptions << FilterOptions(QLatin1String("qrc;rc;*"), QLatin1String("Resource Files"), QLatin1String("ParseFiles"));
+    m_filterOptions << FilterOptions(QLatin1String("moc"), QLatin1String("Generated Files"), QLatin1String("SourceControlFiles"));
+    m_filterOptions << FilterOptions(QLatin1String("ts"), QLatin1String("Translation Files"), QLatin1String("ParseFiles"));
 }
 
 bool MsvsFileWriter::generateSolution(const QString &fileName,
@@ -85,7 +85,7 @@ bool MsvsFileWriter::generateSolution(const QString &fileName,
     solutionOutStream << m_options.solutionHeader;
 
     foreach (QSharedPointer<MsvsPreparedProduct> product, project.allProducts()) {
-        solutionOutStream << QString("Project(\"%1\") = \"%2\", \"%3\", \"%4\"\n")
+        solutionOutStream << QString::fromLocal8Bit("Project(\"%1\") = \"%2\", \"%3\", \"%4\"\n")
                              .arg(solutionGuid)
                              .arg(product->name)
                              .arg(product->vcprojFilepath)
@@ -99,7 +99,7 @@ bool MsvsFileWriter::generateSolution(const QString &fileName,
 
     solutionOutStream << "\tGlobalSection(SolutionConfigurationPlatforms) = preSolution\n";
     foreach (const MsvsProjectConfiguration &buildTask, project.enabledConfigurations) {
-        solutionOutStream << QString("\t\t%1 = %1\n").arg(buildTask.fullName());
+        solutionOutStream << QString::fromLocal8Bit("\t\t%1 = %1\n").arg(buildTask.fullName());
     }
 
     solutionOutStream << "\tEndGlobalSection\n";
@@ -107,7 +107,7 @@ bool MsvsFileWriter::generateSolution(const QString &fileName,
     solutionOutStream << "\tGlobalSection(ProjectConfigurationPlatforms) = postSolution\n";
     foreach (QSharedPointer<MsvsPreparedProduct> product, project.allProducts()) {
         foreach (const MsvsProjectConfiguration &buildTask, product->configurations.keys()) {
-            solutionOutStream << QString("\t\t%1.%2.ActiveCfg = %2\n"
+            solutionOutStream << QString::fromLocal8Bit("\t\t%1.%2.ActiveCfg = %2\n"
                                          "\t\t%1.%2.Build.0 = %2\n")
                                          .arg(product->guid)
                                          .arg(buildTask.fullName());
@@ -131,30 +131,30 @@ void MsvsFileWriter::writeMsBuildFiles(QXmlStreamWriter &xmlWriter,
                                        const QSet<MsvsProjectConfiguration>& allConfigurations,
                                        const ProjectConfigurations &allProjectFilesConfigurations) const
 {
-    xmlWriter.writeStartElement("ItemGroup");
+    xmlWriter.writeStartElement(QLatin1String("ItemGroup"));
 
     foreach (const QString &filePath, allProjectFilesConfigurations.keys()) {
-        xmlWriter.writeStartElement("ClCompile");
+        xmlWriter.writeStartElement(QLatin1String("ClCompile"));
         QSet<MsvsProjectConfiguration> disabledConfigurations = allConfigurations - allProjectFilesConfigurations[filePath];
-        xmlWriter.writeAttribute("Include", filePath);
+        xmlWriter.writeAttribute(QLatin1String("Include"), filePath);
         foreach (const MsvsProjectConfiguration &buildTask, disabledConfigurations) {
-            xmlWriter.writeStartElement("ExcludedFromBuild");
-            xmlWriter.writeAttribute("Condition", "'$(Configuration)|$(Platform)'=='"+  buildTask.fullName() + "'");
-            xmlWriter.writeCharacters("true");
+            xmlWriter.writeStartElement(QLatin1String("ExcludedFromBuild"));
+            xmlWriter.writeAttribute(QLatin1String("Condition"), QLatin1String("'$(Configuration)|$(Platform)'=='")+  buildTask.fullName() + QLatin1String("'"));
+            xmlWriter.writeCharacters(QLatin1String("true"));
             xmlWriter.writeEndElement();
         }
         xmlWriter.writeEndElement();
     }
     xmlWriter.writeEndElement();
 
-    xmlWriter.writeStartElement("Import");
-    xmlWriter.writeAttribute("Project", "$(VCTargetsPath)\\Microsoft.Cpp.targets");
+    xmlWriter.writeStartElement(QLatin1String("Import"));
+    xmlWriter.writeAttribute(QLatin1String("Project"), QLatin1String("$(VCTargetsPath)\\Microsoft.Cpp.targets"));
     xmlWriter.writeEndElement();
 }
 
 void MsvsFileWriter::writeVcProjFiles(QXmlStreamWriter &xmlWriter, const QSet<MsvsProjectConfiguration> &allConfigurations, const MsvsFileWriter::ProjectConfigurations &allProjectFilesConfigurations) const
 {
-    xmlWriter.writeStartElement("Files");
+    xmlWriter.writeStartElement(QLatin1String("Files"));
     foreach (const FilterOptions &options, m_filterOptions) {
         QList<FilePathWithConfigurations> filterFilesWithDisabledConfigurations;
         foreach (const QString &filePath, allProjectFilesConfigurations.keys()) {
@@ -171,17 +171,17 @@ void MsvsFileWriter::writeVcProjFiles(QXmlStreamWriter &xmlWriter, const QSet<Ms
         if (filterFilesWithDisabledConfigurations.isEmpty())
             continue;
 
-        xmlWriter.writeStartElement("Filter");
-        xmlWriter.writeAttribute("Name", options.title);
+        xmlWriter.writeStartElement(QLatin1String("Filter"));
+        xmlWriter.writeAttribute(QLatin1String("Name"), options.title);
 
         foreach (const FilePathWithConfigurations &filePathAndConfig, filterFilesWithDisabledConfigurations) {
-            xmlWriter.writeStartElement("File");
-            xmlWriter.writeAttribute("RelativePath", filePathAndConfig.first); // No error! In VS absolute paths stored such way.
+            xmlWriter.writeStartElement(QLatin1String("File"));
+            xmlWriter.writeAttribute(QLatin1String("RelativePath"), filePathAndConfig.first); // No error! In VS absolute paths stored such way.
 
             foreach (const QString &disabledConfiguration, filePathAndConfig.second) {
-                xmlWriter.writeStartElement("FileConfiguration");
-                xmlWriter.writeAttribute("Name", disabledConfiguration);
-                xmlWriter.writeAttribute("ExcludedFromBuild", "true");
+                xmlWriter.writeStartElement(QLatin1String("FileConfiguration"));
+                xmlWriter.writeAttribute(QLatin1String("Name"), disabledConfiguration);
+                xmlWriter.writeAttribute(QLatin1String("ExcludedFromBuild"), QLatin1String("true"));
                 xmlWriter.writeEndElement();
             }
 
@@ -206,7 +206,7 @@ bool MsvsFileWriter::generateVcproj(const MsvsPreparedProduct &product) const
 
     // Configurations section
     if (!m_options.useMSBuild)
-         xmlWriter.writeStartElement("Configurations");
+         xmlWriter.writeStartElement(QLatin1String("Configurations"));
 
     ProjectConfigurations allProjectFilesConfigurations;
     QSet<MsvsProjectConfiguration> allConfigurations = product.configurations.keys().toSet();
@@ -236,7 +236,7 @@ bool MsvsFileWriter::generateVcprojFilters(const MsvsPreparedProduct &product) c
         return true;
     }
 
-    QFile file(product.vcprojFilepath + ".filters");
+    QFile file(product.vcprojFilepath + QLatin1String(".filters"));
     if (!file.open(QIODevice::WriteOnly)) {
         return false;
     }
@@ -245,28 +245,28 @@ bool MsvsFileWriter::generateVcprojFilters(const MsvsPreparedProduct &product) c
     xmlWriter.setAutoFormatting(true);
 
     xmlWriter.writeStartDocument();
-    xmlWriter.writeStartElement("Project");
-    xmlWriter.writeAttribute("ToolsVersion", m_options.toolsVersion);
-    xmlWriter.writeAttribute("xmlns", "http://schemas.microsoft.com/developer/msbuild/2003");
+    xmlWriter.writeStartElement(QLatin1String("Project"));
+    xmlWriter.writeAttribute(QLatin1String("ToolsVersion"), m_options.toolsVersion);
+    xmlWriter.writeAttribute(QLatin1String("xmlns"), QLatin1String("http://schemas.microsoft.com/developer/msbuild/2003"));
 
     foreach (const FilterOptions &options, m_filterOptions) {
-        xmlWriter.writeStartElement("ItemGroup");
-        xmlWriter.writeAttribute("Label", "ProjectConfigurations");
+        xmlWriter.writeStartElement(QLatin1String("ItemGroup"));
+        xmlWriter.writeAttribute(QLatin1String("Label"), QLatin1String("ProjectConfigurations"));
 
-            xmlWriter.writeStartElement("Filter");
-            xmlWriter.writeAttribute("Include", options.title);
+            xmlWriter.writeStartElement(QLatin1String("Filter"));
+            xmlWriter.writeAttribute(QLatin1String("Include"), options.title);
 
-                xmlWriter.writeStartElement("UniqueIdentifier");
+                xmlWriter.writeStartElement(QLatin1String("UniqueIdentifier"));
                 xmlWriter.writeCharacters(QUuid::createUuid().toString());
                 xmlWriter.writeEndElement();
 
-                xmlWriter.writeStartElement("Extensions");
+                xmlWriter.writeStartElement(QLatin1String("Extensions"));
                 xmlWriter.writeCharacters(options.extensions.join(_VcprojListsSeparator));
                 xmlWriter.writeEndElement();
 
                 if (!options.additionalOptions.isEmpty()) {
                     xmlWriter.writeStartElement(options.additionalOptions);
-                    xmlWriter.writeCharacters("False");// We write only "False" additional options. Could be changed later.
+                    xmlWriter.writeCharacters(QLatin1String("False"));// We write only "False" additional options. Could be changed later.
                     xmlWriter.writeEndElement();
                 }
 
@@ -275,7 +275,7 @@ bool MsvsFileWriter::generateVcprojFilters(const MsvsPreparedProduct &product) c
         xmlWriter.writeEndElement();
     }
 
-    xmlWriter.writeStartElement("ItemGroup");
+    xmlWriter.writeStartElement(QLatin1String("ItemGroup"));
     QSet<QString> allFiles;
 
     foreach (const MsvsProjectConfiguration &buildTask, product.configurations.keys())
@@ -284,10 +284,10 @@ bool MsvsFileWriter::generateVcprojFilters(const MsvsPreparedProduct &product) c
                 allFiles.unite(groupData.allFilePaths().toSet());
 
     foreach (const QString& fileName, allFiles) {
-        xmlWriter.writeStartElement("ClCompile");
+        xmlWriter.writeStartElement(QLatin1String("ClCompile"));
 
-            xmlWriter.writeAttribute("Include", fileName);
-            xmlWriter.writeStartElement("Filter");
+            xmlWriter.writeAttribute(QLatin1String("Include"), fileName);
+            xmlWriter.writeStartElement(QLatin1String("Filter"));
             // TODO: can we get file tags here from GroupData?
             foreach (const FilterOptions &options, m_filterOptions) // FIXME: non-optimal algorithm. Fix on bad performance.
                 if (options.appliesToFilename(fileName))
@@ -315,7 +315,7 @@ QString MsvsFileWriter::projectBuildVariant(const Project &project)
 void MsvsFileWriter::writeProjectSubFolders(QTextStream &solutionOutStream, const MsvsPreparedProject &project) const
 {
     foreach (const MsvsPreparedProject &subProject, project.subProjects) {
-        solutionOutStream << QString("Project(\"%1\") = \"%2\", \"%2\", \"%3\"\n"
+        solutionOutStream << QString::fromLocal8Bit("Project(\"%1\") = \"%2\", \"%2\", \"%3\"\n"
                                      "EndProject\n")
                                      .arg(_GUIDProjectFolder)
                                      .arg(subProject.name)
@@ -330,54 +330,54 @@ void MsvsFileWriter::writeNestedProjects(QTextStream &solutionOutStream, const M
         writeNestedProjects(solutionOutStream, subProject);
 
     foreach (QSharedPointer<MsvsPreparedProduct> product, project.products.values())
-        solutionOutStream << QString("\t\t%1 = %2\n").arg(product->guid).arg(project.guid);
+        solutionOutStream << QString::fromLocal8Bit("\t\t%1 = %2\n").arg(product->guid).arg(project.guid);
 }
 
 void MsvsFileWriter::writeProjectHeader(QXmlStreamWriter &xmlWriter, const MsvsPreparedProduct &product) const
 {
     xmlWriter.writeStartDocument();
     if (m_options.useMSBuild) {
-        xmlWriter.writeStartElement("Project");
-        xmlWriter.writeAttribute("DefaultTargets", "Build");
-        xmlWriter.writeAttribute("ToolsVersion", m_options.toolsVersion);
-        xmlWriter.writeAttribute("xmlns", "http://schemas.microsoft.com/developer/msbuild/2003");
+        xmlWriter.writeStartElement(QLatin1String("Project"));
+        xmlWriter.writeAttribute(QLatin1String("DefaultTargets"), QLatin1String("Build"));
+        xmlWriter.writeAttribute(QLatin1String("ToolsVersion"), m_options.toolsVersion);
+        xmlWriter.writeAttribute(QLatin1String("xmlns"), QLatin1String("http://schemas.microsoft.com/developer/msbuild/2003"));
     } else {
-        xmlWriter.writeStartElement("VisualStudioProject");
-        xmlWriter.writeAttribute("ProjectType", "Visual C++");
-        xmlWriter.writeAttribute("Version", m_options.toolsVersion);
-        xmlWriter.writeAttribute("Name", product.name);
-        xmlWriter.writeAttribute("ProjectGUID", product.guid);
+        xmlWriter.writeStartElement(QLatin1String("VisualStudioProject"));
+        xmlWriter.writeAttribute(QLatin1String("ProjectType"), QLatin1String("Visual C++"));
+        xmlWriter.writeAttribute(QLatin1String("Version"), m_options.toolsVersion);
+        xmlWriter.writeAttribute(QLatin1String("Name"), product.name);
+        xmlWriter.writeAttribute(QLatin1String("ProjectGUID"), product.guid);
     }
 
     // Project begin
     if (m_options.useMSBuild) {
-        xmlWriter.writeStartElement("ItemGroup");
-        xmlWriter.writeAttribute("Label", "ProjectConfigurations");
+        xmlWriter.writeStartElement(QLatin1String("ItemGroup"));
+        xmlWriter.writeAttribute(QLatin1String("Label"), QLatin1String("ProjectConfigurations"));
         foreach (const MsvsProjectConfiguration &buildTask, product.configurations.keys()) {
-            xmlWriter.writeStartElement("ProjectConfiguration");
-            xmlWriter.writeAttribute("Include", buildTask.fullName());
-                xmlWriter.writeTextElement("Configuration", buildTask.profileAndVariant());
-                xmlWriter.writeTextElement("Platform", buildTask.platform);
+            xmlWriter.writeStartElement(QLatin1String("ProjectConfiguration"));
+            xmlWriter.writeAttribute(QLatin1String("Include"), buildTask.fullName());
+                xmlWriter.writeTextElement(QLatin1String("Configuration"), buildTask.profileAndVariant());
+                xmlWriter.writeTextElement(QLatin1String("Platform"), buildTask.platform);
             xmlWriter.writeEndElement();
         }
         xmlWriter.writeEndElement();
 
-        xmlWriter.writeStartElement("PropertyGroup");
-        xmlWriter.writeAttribute("Label", "Globals");
-            xmlWriter.writeTextElement("ProjectGuid", product.guid);
+        xmlWriter.writeStartElement(QLatin1String("PropertyGroup"));
+        xmlWriter.writeAttribute(QLatin1String("Label"), QLatin1String("Globals"));
+            xmlWriter.writeTextElement(QLatin1String("ProjectGuid"), product.guid);
         xmlWriter.writeEndElement();
 
-        xmlWriter.writeStartElement("Import");
-        xmlWriter.writeAttribute("Project", "$(VCTargetsPath)\\Microsoft.Cpp.Default.props");
+        xmlWriter.writeStartElement(QLatin1String("Import"));
+        xmlWriter.writeAttribute(QLatin1String("Project"), QLatin1String("$(VCTargetsPath)\\Microsoft.Cpp.Default.props"));
         xmlWriter.writeEndElement();
-        xmlWriter.writeStartElement("Import");
-        xmlWriter.writeAttribute("Project", "$(VCTargetsPath)\\Microsoft.Cpp.props");
+        xmlWriter.writeStartElement(QLatin1String("Import"));
+        xmlWriter.writeAttribute(QLatin1String("Project"), QLatin1String("$(VCTargetsPath)\\Microsoft.Cpp.props"));
         xmlWriter.writeEndElement();
     } else { // MSVS <= 2008, vcproj format
-        xmlWriter.writeStartElement("Platforms");
+        xmlWriter.writeStartElement(QLatin1String("Platforms"));
         foreach (const QString &platformName, product.uniquePlatforms()) {
-            xmlWriter.writeStartElement("Platform");
-            xmlWriter.writeAttribute("Name", platformName);
+            xmlWriter.writeStartElement(QLatin1String("Platform"));
+            xmlWriter.writeAttribute(QLatin1String("Name"), platformName);
             xmlWriter.writeEndElement();
         }
         xmlWriter.writeEndElement();
@@ -392,10 +392,10 @@ void MsvsFileWriter::writeOneConfiguration(QXmlStreamWriter &xmlWriter,
 {
     const QString targetDir = product.targetPath;
     const PropertyMap properties = productData.moduleProperties();
-    const QString executableSuffix = properties.getModuleProperty("qbs", "executableSuffix").toString();
-    const QString fullTargetName =  product.targetName + (product.isApplication ? executableSuffix : "");
+    const QString executableSuffix = properties.getModuleProperty(QLatin1String("qbs"), QLatin1String("executableSuffix")).toString();
+    const QString fullTargetName =  product.targetName + (product.isApplication ? executableSuffix : QLatin1String(""));
 
-    const bool debugBuild = properties.getModuleProperty("qbs", "debugInformation").toBool();
+    const bool debugBuild = properties.getModuleProperty(QLatin1String("qbs"), QLatin1String("debugInformation")).toBool();
     const QStringList includePaths = QStringList()
             << properties.getModulePropertiesAsStringList(QLatin1String("cpp"), QLatin1String("includePaths"))
             << properties.getModulePropertiesAsStringList(QLatin1String("cpp"), QLatin1String("systemIncludePaths"));
@@ -423,9 +423,9 @@ void MsvsFileWriter::writeOneConfiguration(QXmlStreamWriter &xmlWriter,
     const QStringList cleanCommand = QStringList() << qbsExecutablePathEscaped
                                                    << QLatin1String("clean") << commandLineArgs;
 
-    const QString buildTaskCondition = "'$(Configuration)|$(Platform)'=='" + buildTask.fullName() + "'";
-    const QString optimizationLevel = properties.getModuleProperty("qbs", "optimization").toString();
-    const QString warningLevel = properties.getModuleProperty("qbs", "warningLevel").toString();
+    const QString buildTaskCondition = QLatin1String("'$(Configuration)|$(Platform)'=='") + buildTask.fullName() + QLatin1String("'");
+    const QString optimizationLevel = properties.getModuleProperty(QLatin1String("qbs"), QLatin1String("optimization")).toString();
+    const QString warningLevel = properties.getModuleProperty(QLatin1String("qbs"), QLatin1String("warningLevel")).toString();
 
     foreach (const GroupData &groupData, productData.groups()) {
         if (groupData.isEnabled()) {
@@ -437,19 +437,19 @@ void MsvsFileWriter::writeOneConfiguration(QXmlStreamWriter &xmlWriter,
 
     // For MSVS <= 2008 we set only NMake options, as it ignores VCCompiler options for configuration "Makefile".
     if (!m_options.useMSBuild) {
-        xmlWriter.writeStartElement("Configuration");
-        xmlWriter.writeAttribute("Name", buildTask.fullName());
-        xmlWriter.writeAttribute("OutputDirectory", targetDir);
-        xmlWriter.writeAttribute("ConfigurationType", _VcprojNmakeConfig);
+        xmlWriter.writeStartElement(QLatin1String("Configuration"));
+        xmlWriter.writeAttribute(QLatin1String("Name"), buildTask.fullName());
+        xmlWriter.writeAttribute(QLatin1String("OutputDirectory"), targetDir);
+        xmlWriter.writeAttribute(QLatin1String("ConfigurationType"), _VcprojNmakeConfig);
 
-        xmlWriter.writeStartElement("Tool");
-        xmlWriter.writeAttribute("Name", "VCNMakeTool");
-        xmlWriter.writeAttribute("BuildCommandLine", Internal::shellQuoteWin(buildCommand));
-        xmlWriter.writeAttribute("ReBuildCommandLine", Internal::shellQuoteWin(buildCommand));  // using build command.
-        xmlWriter.writeAttribute("CleanCommandLine", Internal::shellQuoteWin(cleanCommand));
-        xmlWriter.writeAttribute("Output", QString("$(OutDir)%1").arg(fullTargetName));
-        xmlWriter.writeAttribute("PreprocessorDefinitions", cppDefines.join(_VcprojListsSeparator));
-        xmlWriter.writeAttribute("IncludeSearchPath", includePaths.join(_VcprojListsSeparator));
+        xmlWriter.writeStartElement(QLatin1String("Tool"));
+        xmlWriter.writeAttribute(QLatin1String("Name"), QLatin1String("VCNMakeTool"));
+        xmlWriter.writeAttribute(QLatin1String("BuildCommandLine"), Internal::shellQuote(buildCommand, Internal::HostOsInfo::HostOsWindows));
+        xmlWriter.writeAttribute(QLatin1String("ReBuildCommandLine"), Internal::shellQuote(buildCommand, Internal::HostOsInfo::HostOsWindows));  // using build command.
+        xmlWriter.writeAttribute(QLatin1String("CleanCommandLine"), Internal::shellQuote(cleanCommand, Internal::HostOsInfo::HostOsWindows));
+        xmlWriter.writeAttribute(QLatin1String("Output"), QString::fromLocal8Bit("$(OutDir)%1").arg(fullTargetName));
+        xmlWriter.writeAttribute(QLatin1String("PreprocessorDefinitions"), cppDefines.join(_VcprojListsSeparator));
+        xmlWriter.writeAttribute(QLatin1String("IncludeSearchPath"), includePaths.join(_VcprojListsSeparator));
         xmlWriter.writeEndElement();
 
         xmlWriter.writeEndElement();
@@ -457,58 +457,58 @@ void MsvsFileWriter::writeOneConfiguration(QXmlStreamWriter &xmlWriter,
     }
 
     // Setup VCTool compilation option if someone wants to change configuration type.
-    xmlWriter.writeStartElement("PropertyGroup");
-    xmlWriter.writeAttribute("Condition", buildTaskCondition);
-    xmlWriter.writeAttribute("Label", "Configuration");
-        xmlWriter.writeTextElement("ConfigurationType", "Makefile");
-        xmlWriter.writeTextElement("UseDebugLibraries", debugBuild ? "true" : "false");
-        xmlWriter.writeTextElement("CharacterSet", // VS possible values: Unicode|MultiByte|NotSet
-                                   properties.getModuleProperty("cpp", "windowsApiCharacterSet") == "unicode" ? "MultiByte" : "NotSet");
-        xmlWriter.writeTextElement("PlatformToolset", m_options.platformToolset);
+    xmlWriter.writeStartElement(QLatin1String("PropertyGroup"));
+    xmlWriter.writeAttribute(QLatin1String("Condition"), buildTaskCondition);
+    xmlWriter.writeAttribute(QLatin1String("Label"), QLatin1String("Configuration"));
+        xmlWriter.writeTextElement(QLatin1String("ConfigurationType"), QLatin1String("Makefile"));
+        xmlWriter.writeTextElement(QLatin1String("UseDebugLibraries"), debugBuild ? QLatin1String("true") : QLatin1String("false"));
+        xmlWriter.writeTextElement(QLatin1String("CharacterSet"), // VS possible values: Unicode|MultiByte|NotSet
+                                   properties.getModuleProperty(QLatin1String("cpp"), QLatin1String("windowsApiCharacterSet")) == QLatin1String("unicode") ? QLatin1String("MultiByte") : QLatin1String("NotSet"));
+        xmlWriter.writeTextElement(QLatin1String("PlatformToolset"), m_options.platformToolset);
     xmlWriter.writeEndElement();
 
-    xmlWriter.writeStartElement("PropertyGroup");
-    xmlWriter.writeAttribute("Condition", buildTaskCondition);
-    xmlWriter.writeAttribute("Label", "Configuration");
-        xmlWriter.writeTextElement("NMakeIncludeSearchPath", includePaths.join(_VcprojListsSeparator));
-        xmlWriter.writeTextElement("NMakePreprocessorDefinitions", cppDefines.join(_VcprojListsSeparator));
-        xmlWriter.writeTextElement("OutDir", targetDir);
-        xmlWriter.writeTextElement("TargetName", productData.targetName());
-        xmlWriter.writeTextElement("NMakeOutput", "$(OutDir)$(TargetName)$(TargetExt)");
-        xmlWriter.writeTextElement("LocalDebuggerCommand", "$(OutDir)$(TargetName)$(TargetExt)");
-        xmlWriter.writeTextElement("LocalDebuggerWorkingDirectory", "$(OutDir)");
-        xmlWriter.writeTextElement("DebuggerFlavor", "WindowsLocalDebugger");
-        xmlWriter.writeTextElement("NMakeBuildCommandLine", Internal::shellQuoteWin(buildCommand));
-        xmlWriter.writeTextElement("NMakeCleanCommandLine", Internal::shellQuoteWin(cleanCommand));
+    xmlWriter.writeStartElement(QLatin1String("PropertyGroup"));
+    xmlWriter.writeAttribute(QLatin1String("Condition"), buildTaskCondition);
+    xmlWriter.writeAttribute(QLatin1String("Label"), QLatin1String("Configuration"));
+        xmlWriter.writeTextElement(QLatin1String("NMakeIncludeSearchPath"), includePaths.join(_VcprojListsSeparator));
+        xmlWriter.writeTextElement(QLatin1String("NMakePreprocessorDefinitions"), cppDefines.join(_VcprojListsSeparator));
+        xmlWriter.writeTextElement(QLatin1String("OutDir"), targetDir);
+        xmlWriter.writeTextElement(QLatin1String("TargetName"), productData.targetName());
+        xmlWriter.writeTextElement(QLatin1String("NMakeOutput"), QLatin1String("$(OutDir)$(TargetName)$(TargetExt)"));
+        xmlWriter.writeTextElement(QLatin1String("LocalDebuggerCommand"), QLatin1String("$(OutDir)$(TargetName)$(TargetExt)"));
+        xmlWriter.writeTextElement(QLatin1String("LocalDebuggerWorkingDirectory"), QLatin1String("$(OutDir)"));
+        xmlWriter.writeTextElement(QLatin1String("DebuggerFlavor"), QLatin1String("WindowsLocalDebugger"));
+        xmlWriter.writeTextElement(QLatin1String("NMakeBuildCommandLine"), Internal::shellQuote(buildCommand, Internal::HostOsInfo::HostOsWindows));
+        xmlWriter.writeTextElement(QLatin1String("NMakeCleanCommandLine"), Internal::shellQuote(cleanCommand, Internal::HostOsInfo::HostOsWindows));
     xmlWriter.writeEndElement();
 
-    xmlWriter.writeStartElement("ItemDefinitionGroup");
-    xmlWriter.writeAttribute("Condition", buildTaskCondition);
-        xmlWriter.writeStartElement("ClCompile");
-            xmlWriter.writeStartElement("WarningLevel");
-                if (warningLevel == "none")
-                    xmlWriter.writeCharacters("TurnOffAllWarnings");
-                else if (warningLevel == "all")
-                    xmlWriter.writeCharacters("EnableAllWarnings");
+    xmlWriter.writeStartElement(QLatin1String("ItemDefinitionGroup"));
+    xmlWriter.writeAttribute(QLatin1String("Condition"), buildTaskCondition);
+        xmlWriter.writeStartElement(QLatin1String("ClCompile"));
+            xmlWriter.writeStartElement(QLatin1String("WarningLevel"));
+                if (warningLevel == QLatin1String("none"))
+                    xmlWriter.writeCharacters(QLatin1String("TurnOffAllWarnings"));
+                else if (warningLevel == QLatin1String("all"))
+                    xmlWriter.writeCharacters(QLatin1String("EnableAllWarnings"));
                 else
-                    xmlWriter.writeCharacters("Level3");// this is VS default.
+                    xmlWriter.writeCharacters(QLatin1String("Level3"));// this is VS default.
             xmlWriter.writeEndElement();
 
-            xmlWriter.writeTextElement("Optimization", optimizationLevel == "none" ? "Disabled" : "MaxSpeed");
-            xmlWriter.writeTextElement("RuntimeLibrary",
-                                       debugBuild ? "MultiThreadedDebugDLL" : "MultiThreadedDLL");
-            xmlWriter.writeTextElement("PreprocessorDefinitions",
-                                       cppDefines.join(_VcprojListsSeparator) + _VcprojListsSeparator + "%(PreprocessorDefinitions)");
-            xmlWriter.writeTextElement("AdditionalIncludeDirectories",
-                                       includePaths.join(_VcprojListsSeparator) + _VcprojListsSeparator + "%(AdditionalIncludeDirectories)");
+            xmlWriter.writeTextElement(QLatin1String("Optimization"), optimizationLevel == QLatin1String("none") ? QLatin1String("Disabled") : QLatin1String("MaxSpeed"));
+            xmlWriter.writeTextElement(QLatin1String("RuntimeLibrary"),
+                                       debugBuild ? QLatin1String("MultiThreadedDebugDLL") : QLatin1String("MultiThreadedDLL"));
+            xmlWriter.writeTextElement(QLatin1String("PreprocessorDefinitions"),
+                                       cppDefines.join(_VcprojListsSeparator) + _VcprojListsSeparator + QLatin1String("%(PreprocessorDefinitions)"));
+            xmlWriter.writeTextElement(QLatin1String("AdditionalIncludeDirectories"),
+                                       includePaths.join(_VcprojListsSeparator) + _VcprojListsSeparator + QLatin1String("%(AdditionalIncludeDirectories)"));
         xmlWriter.writeEndElement();
 
-        xmlWriter.writeStartElement("Link");
-            xmlWriter.writeTextElement("GenerateDebugInformation", debugBuild ? "true" : "false");
-            xmlWriter.writeTextElement("OptimizeReferences", debugBuild ? "false" : "true");
-            xmlWriter.writeTextElement("AdditionalDependencies",
-                                       properties.getModulePropertiesAsStringList(QLatin1String("cpp"), QLatin1String("staticLibraries")).join(_VcprojListsSeparator) + _VcprojListsSeparator + "%(AdditionalDependencies)");
-            xmlWriter.writeTextElement("AdditionalLibraryDirectories",
+        xmlWriter.writeStartElement(QLatin1String("Link"));
+            xmlWriter.writeTextElement(QLatin1String("GenerateDebugInformation"), debugBuild ? QLatin1String("true") : QLatin1String("false"));
+            xmlWriter.writeTextElement(QLatin1String("OptimizeReferences"), debugBuild ? QLatin1String("false") : QLatin1String("true"));
+            xmlWriter.writeTextElement(QLatin1String("AdditionalDependencies"),
+                                       properties.getModulePropertiesAsStringList(QLatin1String("cpp"), QLatin1String("staticLibraries")).join(_VcprojListsSeparator) + _VcprojListsSeparator + QLatin1String("%(AdditionalDependencies)"));
+            xmlWriter.writeTextElement(QLatin1String("AdditionalLibraryDirectories"),
                                        properties.getModulePropertiesAsStringList(QLatin1String("cpp"), QLatin1String("libraryPaths")).join(_VcprojListsSeparator));
         xmlWriter.writeEndElement();
         xmlWriter.writeEndElement();

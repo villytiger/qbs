@@ -82,10 +82,10 @@ MsvsGenerator::MsvsGenerator(MsvsProductVersion generatorVersion)
             ;
     }
 
-    m_generatorName = QString("msvs%1").arg(yearVersion);
-    m_versionOptions.platformToolset =  QString("v%1").arg(toolsetVersion * 10);
-    m_versionOptions.projectExtension = (generatorVersion <= MSVS2008) ? ".vcproj" : ".vcxproj";
-    m_versionOptions.solutionHeader = QString("Microsoft Visual Studio Solution File, Format Version %1.00\n"
+    m_generatorName = QString::fromLocal8Bit("msvs%1").arg(yearVersion);
+    m_versionOptions.platformToolset =  QString::fromLocal8Bit("v%1").arg(toolsetVersion * 10);
+    m_versionOptions.projectExtension = (generatorVersion <= MSVS2008) ? QLatin1String(".vcproj") : QLatin1String(".vcxproj");
+    m_versionOptions.solutionHeader = QString::fromLocal8Bit("Microsoft Visual Studio Solution File, Format Version %1.00\n"
                                                 "# Visual Studio %2\n")
                                                 .arg(formatVersion)
                                                 .arg(yearVersion);
@@ -110,14 +110,14 @@ void MsvsGenerator::generate(const InstallOptions& installOptions)
 
     // Common settings setup: qbs environment, passed build settings.
     const QString qbsProjectFilePath = qbsProject.projectData().location().filePath();
-    const QString qbsBaseBuildDirectory = QFileInfo(qbsProject.projectData().buildDirectory() + "/..").absoluteFilePath() + "/";
+    const QString qbsBaseBuildDirectory = QFileInfo(qbsProject.projectData().buildDirectory() + QLatin1String("/..")).absoluteFilePath() + QLatin1String("/");
     const QString qbsExecutablePath = QFileInfo(QCoreApplication::applicationFilePath()).absoluteFilePath();
-    const QString generatedSolutionFilePath = qbsBaseBuildDirectory + QFileInfo(qbsProjectFilePath).baseName() + ".sln";
+    const QString generatedSolutionFilePath = qbsBaseBuildDirectory + QFileInfo(qbsProjectFilePath).baseName() + QLatin1String(".sln");
 
     QStringList projectCommandlineParameters;     // we can pass extra params to generate command; them should be saved.
-    QVariantMap projectSettings = qbsProject.projectConfiguration().value("project").toMap();
+    QVariantMap projectSettings = qbsProject.projectConfiguration().value(QLatin1String("project")).toMap();
     foreach (const QString& key, projectSettings.keys())
-        projectCommandlineParameters += QString("project.%1:%2").arg(key).arg(projectSettings[key].toString());
+        projectCommandlineParameters += QString::fromLocal8Bit("project.%1:%2").arg(key).arg(projectSettings[key].toString());
 
     const MsvsFileWriter writer(m_versionOptions, qbsExecutablePath, qbsProjectFilePath, qbsBaseBuildDirectory, projectCommandlineParameters, installOptions.installRoot());
 

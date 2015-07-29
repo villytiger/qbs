@@ -30,6 +30,8 @@
 #ifndef MSVS_FILE_WRITER_H
 #define MSVS_FILE_WRITER_H
 
+#include <QString>
+
 #include "msvspreparedproject.h"
 
 QT_BEGIN_NAMESPACE
@@ -92,8 +94,8 @@ public:
         QString title;
         QString additionalOptions;
         bool appliesToFilename(const QString &filename) const;
-        FilterOptions(const QStringList &extensions, const QString &title, const QString &additionalOptions = "");
-        FilterOptions(const QString &extensions, const QString &title, const QString &additionalOptions = "");
+        FilterOptions(const QStringList &extensions, const QString &title, const QString &additionalOptions = QLatin1String(""));
+        FilterOptions(const QString &extensions, const QString &title, const QString &additionalOptions = QLatin1String(""));
     };
     QList<FilterOptions> m_filterOptions;
     QString m_qbsExecutablePath;
