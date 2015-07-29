@@ -105,7 +105,7 @@ MsvsProjectConfiguration::MsvsProjectConfiguration(const Project &project)
     // Select VS platform display name. It doesn't interfere with compilation settings.
     QMap<QString, QString> qbsToVSArch;
     qbsToVSArch[QLatin1String("x86")] = QLatin1String("Win32");
-    qbsToVSArch[QLatin1String("x86_64")] = QLatin1String("Win64");
+    qbsToVSArch[QLatin1String("x86_64")] = QLatin1String("x64");
     qbsToVSArch[QLatin1String("ia64")] = QLatin1String("Itanium");
     qbsToVSArch[QLatin1String("arm")] = QLatin1String("Arm");
     qbsToVSArch[QLatin1String("arm64")] = QLatin1String("Arm64");
