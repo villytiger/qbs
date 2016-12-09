@@ -87,6 +87,7 @@ private slots:
     void identifierSearch_data();
     void identifierSearch();
     void idUsage();
+    void importCollection();
     void invalidBindingInDisabledItem();
     void itemPrototype();
     void itemScope();
@@ -105,6 +106,10 @@ private slots:
     void profileValuesAndOverriddenValues();
     void propertiesBlocks_data();
     void propertiesBlocks();
+    void propertiesBlockInGroup();
+    void qbsPropertiesInProjectCondition();
+    void defaultValue();
+    void defaultValue_data();
     void qualifiedId();
     void recursiveProductDependencies();
     void rfc1034Identifier();

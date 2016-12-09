@@ -250,10 +250,13 @@ void QtModuleInfo::setupLibraries(const QtEnvironment &qtEnv, bool debugBuild,
             libFilePath += QString::fromLatin1(simplifiedLine.mid(equalsOffset + 1).trimmed());
             if (isNonStaticQt4OnWindows)
                 libFilePath += QString::number(4); // This is *not* part of QMAKE_PRL_TARGET...
-            if (qtEnv.mkspecName.contains(QLatin1String("msvc")))
-                libFilePath += QLatin1String(".lib");
-            else if (isMingw)
-                libFilePath += QLatin1String(".a");
+            if (qtEnv.qtMajorVersion < 5
+                    || (qtEnv.qtMajorVersion == 5 && qtEnv.qtMinorVersion < 6)) {
+                if (qtEnv.mkspecName.contains(QLatin1String("msvc")))
+                    libFilePath += QLatin1String(".lib");
+                else if (isMingw)
+                    libFilePath += QLatin1String(".a");
+            }
             continue;
         }
         if (!simplifiedLine.startsWith("QMAKE_PRL_LIBS"))
@@ -545,6 +548,8 @@ QList<QtModuleInfo> allQt5Modules(const Profile &profile, const QtEnvironment &q
         const QByteArray moduleKeyPrefix = QByteArray(moduleInfo.isPlugin ? "QT_PLUGIN" : "QT")
                 + '.' + moduleInfo.qbsName.toLatin1() + '.';
         moduleInfo.qbsName.replace(QLatin1String("_private"), QLatin1String("-private"));
+        bool hasV2 = false;
+        bool hasModuleEntry = false;
         foreach (const QByteArray &line, getPriFileContentsRecursively(profile, dit.filePath())) {
             const QByteArray simplifiedLine = line.simplified();
             const int firstEqualsOffset = simplifiedLine.indexOf('=');
@@ -556,6 +561,8 @@ QList<QtModuleInfo> allQt5Modules(const Profile &profile, const QtEnvironment &q
                 continue;
             if (key.endsWith(".name")) {
                 moduleInfo.name = QString::fromLocal8Bit(value);
+            } else if (key.endsWith(".module")) {
+                hasModuleEntry = true;
             } else if (key.endsWith(".depends")) {
                 moduleInfo.dependencies = QString::fromLocal8Bit(value).split(QLatin1Char(' '));
                 for (int i = 0; i < moduleInfo.dependencies.count(); ++i) {
@@ -570,6 +577,8 @@ QList<QtModuleInfo> allQt5Modules(const Profile &profile, const QtEnvironment &q
                         moduleInfo.isStaticLibrary = true;
                     else if (elem == "internal_module")
                         moduleInfo.isPrivate = true;
+                    else if (elem == "v2")
+                        hasV2 = true;
                 }
             } else if (key.endsWith(".includes")) {
                 moduleInfo.includePaths = QString::fromLocal8Bit(value).split(QLatin1Char(' '));
@@ -593,6 +602,8 @@ QList<QtModuleInfo> allQt5Modules(const Profile &profile, const QtEnvironment &q
                 moduleInfo.pluginData.className = QString::fromLatin1(value);
             }
         }
+        if (hasV2 && !hasModuleEntry)
+            moduleInfo.hasLibrary = false;
 
         // Fix include paths for OS X and iOS frameworks.
         // The qt_lib_XXX.pri files contain wrong values.

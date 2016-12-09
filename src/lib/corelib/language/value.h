@@ -31,14 +31,13 @@
 #ifndef QBS_VALUE_H
 #define QBS_VALUE_H
 
-#include "filecontext.h"
-#include "item.h"
+#include "forward_decls.h"
 #include <tools/codelocation.h>
 #include <QVariant>
 
 namespace qbs {
 namespace Internal {
-
+class Item;
 class ValueHandler;
 
 class Value
@@ -52,7 +51,7 @@ public:
         BuiltinValueType
     };
 
-    Value(Type t);
+    Value(Type t, bool createdByPropertiesBlock);
     virtual ~Value();
 
     Type type() const { return m_type; }
@@ -66,10 +65,13 @@ public:
     ValuePtr next() const;
     void setNext(const ValuePtr &next);
 
+    bool createdByPropertiesBlock() const { return m_createdByPropertiesBlock; }
+
 private:
     Type m_type;
     Item *m_definingItem;
     ValuePtr m_next;
+    const bool m_createdByPropertiesBlock;
 };
 
 class ValueHandler
@@ -84,19 +86,20 @@ public:
 class JSSourceValue : public Value
 {
     friend class ItemReaderASTVisitor;
-    JSSourceValue();
+    JSSourceValue(bool createdByPropertiesBlock);
 
     enum Flag
     {
         NoFlags = 0x00,
         SourceUsesBase = 0x01,
         SourceUsesOuter = 0x02,
+        SourceUsesOriginal = 0x04,
         HasFunctionForm = 0x08
     };
     Q_DECLARE_FLAGS(Flags, Flag)
 
 public:
-    static JSSourceValuePtr create();
+    static JSSourceValuePtr create(bool createdByPropertiesBlock = false);
     ~JSSourceValue();
 
     void apply(ValueHandler *handler) { handler->handle(this); }
@@ -117,6 +120,7 @@ public:
     void setSourceUsesBaseFlag() { m_flags |= SourceUsesBase; }
     bool sourceUsesBase() const { return m_flags.testFlag(SourceUsesBase); }
     bool sourceUsesOuter() const { return m_flags.testFlag(SourceUsesOuter); }
+    bool sourceUsesOriginal() const { return m_flags.testFlag(SourceUsesOriginal); }
     bool isInExportItem() const { return m_exportScope; }
     bool hasFunctionForm() const { return m_flags.testFlag(HasFunctionForm); }
     void setHasFunctionForm(bool b);
@@ -150,13 +154,12 @@ private:
     Item *m_exportScope;
 };
 
-class Item;
 
 class ItemValue : public Value
 {
-    ItemValue(Item *item);
+    ItemValue(Item *item, bool createdByPropertiesBlock);
 public:
-    static ItemValuePtr create(Item *item = 0);
+    static ItemValuePtr create(Item *item = 0, bool createdByPropertiesBlock = false);
     ~ItemValue();
 
     void apply(ValueHandler *handler) { handler->handle(this); }

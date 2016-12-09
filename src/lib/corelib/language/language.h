@@ -34,22 +34,18 @@
 #include "filetags.h"
 #include "forward_decls.h"
 #include "jsimports.h"
-#include "propertymapinternal.h"
-#include <buildgraph/artifactset.h>
+
 #include <buildgraph/forward_decls.h>
 #include <tools/codelocation.h>
-#include <tools/fileinfo.h>
+#include <tools/filetime.h>
 #include <tools/persistentobject.h>
-#include <tools/settings.h>
 #include <tools/weakpointer.h>
 
-#include <QByteArray>
 #include <QDataStream>
 #include <QHash>
 #include <QMutex>
 #include <QProcessEnvironment>
 #include <QRegExp>
-#include <QScriptProgram>
 #include <QScriptValue>
 #include <QScopedPointer>
 #include <QSet>
@@ -462,7 +458,13 @@ public:
 
     QString buildDirectory; // Not saved
     QProcessEnvironment environment;
-    QHash<QString, QString> usedEnvironment; // Environment variables requested by the project while resolving.
+
+    // Environment variables requested by the project while resolving.
+    // TODO: This information is currently not used. Remove in 1.5 or use elaborate change tracking
+    //       logic where rules declare the environment variables that could influence their
+    //       behavior.
+    QHash<QString, QString> usedEnvironment;
+
     QHash<QString, QString> canonicalFilePathResults; // Results of calls to "File.canonicalFilePath()."
     QHash<QString, bool> fileExistsResults; // Results of calls to "File.exists()".
     QHash<QString, FileTime> fileLastModifiedResults; // Results of calls to "File.lastModified()".

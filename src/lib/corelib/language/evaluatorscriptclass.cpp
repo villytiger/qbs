@@ -30,7 +30,6 @@
 
 #include "evaluatorscriptclass.h"
 
-#include "builtinvalue.h"
 #include "evaluationdata.h"
 #include "evaluator.h"
 #include "filecontext.h"
@@ -187,13 +186,15 @@ private:
             }
             if (cr.toBool()) {
                 // condition is true, let's use the value of this alternative
-                if (alternative->value->sourceUsesOuter()) {
+                if (alternative->value->sourceUsesOuter() && !outerItem) {
                     // Clone value but without alternatives.
                     JSSourceValuePtr outerValue = JSSourceValue::create();
                     outerValue->setFile(value->file());
                     outerValue->setHasFunctionForm(value->hasFunctionForm());
                     outerValue->setSourceCode(value->sourceCode());
                     outerValue->setBaseValue(value->baseValue());
+                    if (value->sourceUsesBase())
+                        outerValue->setSourceUsesBaseFlag();
                     outerValue->setLocation(value->line(), value->column());
                     outerItem = Item::create(data->item->pool());
                     outerItem->setProperty(propertyName->toString(), outerValue);
@@ -213,9 +214,24 @@ private:
             }
             setupConvenienceProperty(QLatin1String("base"), &extraScope, baseValue);
         }
-        if (value->sourceUsesOuter() && outerItem)
-            setupConvenienceProperty(QLatin1String("outer"), &extraScope,
-                                     data->evaluator->property(outerItem, *propertyName));
+        if (value->sourceUsesOuter() && outerItem) {
+            const QScriptValue v = data->evaluator->property(outerItem, *propertyName);
+            if (engine->hasErrorOrException(v)) {
+                *result = engine->lastErrorValue(v);
+                return;
+            }
+            setupConvenienceProperty(QLatin1String("outer"), &extraScope, v);
+        }
+        if (value->sourceUsesOriginal()) {
+            const Item *item = itemOfProperty;
+            while (item->isModuleInstance())
+                item = item->prototype();
+            QScriptValue originalValue;
+            SVConverter converter(scriptClass, object, item->property(*propertyName), item,
+                                  propertyName, data, &originalValue, sourceValueStack);
+            converter.start();
+            setupConvenienceProperty(QLatin1String("original"), &extraScope, originalValue);
+        }
 
         pushScope(data->evaluator->fileScope(value->file()));
         pushItemScopes(data->item);
@@ -364,7 +380,11 @@ void EvaluatorScriptClass::collectValuesFromNextChain(const EvaluationData *data
 
     for (ValuePtr next = value; next; next = next->next()) {
         QScriptValue v = data->evaluator->property(next->definingItem(), propertyName);
-        data->evaluator->handleEvaluationError(next->definingItem(), propertyName, v);
+        ScriptEngine * const se = static_cast<ScriptEngine *>(engine());
+        if (se->hasErrorOrException(v)) {
+            *result = se->lastErrorValue(v);
+            return;
+        }
         if (v.isUndefined())
             continue;
         lst << v;
@@ -375,10 +395,7 @@ void EvaluatorScriptClass::collectValuesFromNextChain(const EvaluationData *data
     quint32 k = 0;
     for (int i = 0; i < lst.count(); ++i) {
         const QScriptValue &v = lst.at(i);
-        if (v.isError()) {
-            *result = v;
-            return;
-        }
+        QBS_ASSERT(!v.isError(), continue);
         if (v.isArray()) {
             const quint32 vlen = v.property(QStringLiteral("length")).toInt32();
             for (quint32 j = 0; j < vlen; ++j)

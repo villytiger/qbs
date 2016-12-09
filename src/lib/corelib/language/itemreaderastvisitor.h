@@ -31,19 +31,21 @@
 #ifndef QBS_ITEMREADERASTVISITOR_H
 #define QBS_ITEMREADERASTVISITOR_H
 
-#include "item.h"
-#include "filecontext.h"
+#include "forward_decls.h"
 
 #include <logging/logger.h>
 #include <parser/qmljsastvisitor_p.h>
+#include <tools/codelocation.h>
 
 #include <QHash>
 #include <QStringList>
 
 namespace qbs {
 namespace Internal {
-
+class Item;
+class ItemPool;
 class ItemReaderVisitorState;
+class JsImport;
 class Version;
 
 class ItemReaderASTVisitor : public QbsQmlJS::AST::Visitor
@@ -76,11 +78,15 @@ private:
                                  const JSSourceValueConstPtr &value);
     void checkImportVersion(const QbsQmlJS::AST::SourceLocation &versionToken) const;
     static void inheritItem(Item *dst, const Item *src);
-    void ensureIdScope(const FileContextPtr &file);
     void setupAlternatives(Item *item);
     static void replaceConditionScopes(const JSSourceValuePtr &value, Item *newScope);
     void handlePropertiesBlock(Item *item, const Item *block);
     void collectPrototypes(const QString &path, const QString &as);
+
+    using JsImportsHash = QHash<QString, JsImport>;
+    void collectPrototypesAndJsCollections(const QString &path, const QString &as,
+                                           const CodeLocation &location, JsImportsHash &jsImports);
+
     bool addPrototype(const QString &fileName, const QString &filePath, const QString &as,
                       bool needsCheck);
 

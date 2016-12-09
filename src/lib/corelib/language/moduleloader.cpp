@@ -36,20 +36,20 @@
 #include "filecontext.h"
 #include "item.h"
 #include "itemreader.h"
+#include "qualifiedid.h"
 #include "scriptengine.h"
 #include "value.h"
+
 #include <language/language.h>
 #include <language/scriptengine.h>
 #include <logging/logger.h>
 #include <logging/translator.h>
 #include <tools/error.h>
 #include <tools/fileinfo.h>
-#include <tools/hostosinfo.h>
 #include <tools/preferences.h>
 #include <tools/profile.h>
 #include <tools/progressobserver.h>
 #include <tools/qbsassert.h>
-#include <tools/qttools.h>
 #include <tools/scripttools.h>
 #include <tools/settings.h>
 
@@ -181,7 +181,8 @@ public:
 private:
     void handle(JSSourceValue *value)
     {
-        if (!m_parentItem->propertyDeclaration(m_currentName).isValid()) {
+        if (!m_parentItem->propertyDeclaration(m_currentName).isValid()
+                && !value->createdByPropertiesBlock()) {
             const ErrorInfo error(Tr::tr("Property '%1' is not declared.")
                             .arg(m_currentName), value->location());
             handlePropertyError(error, m_params, m_logger);
@@ -193,7 +194,8 @@ private:
         if (!value->item()->isModuleInstance()
                 && !m_validItemPropertyNamesPerItem.value(m_parentItem).contains(m_currentName)
                 && m_parentItem->file()
-                && !m_parentItem->file()->idScope()->hasProperty(m_currentName)) {
+                && !m_parentItem->file()->idScope()->hasProperty(m_currentName)
+                && !value->createdByPropertiesBlock()) {
             const ErrorInfo error(Tr::tr("Item '%1' is not declared. "
                                          "Did you forget to add a Depends item?").arg(m_currentName),
                                   value->location().isValid() ? value->location()
@@ -207,8 +209,8 @@ private:
     void handleItem(Item *item)
     {
         if (m_disabledItems.contains(item)
-                || item->typeName() == QLatin1String("Export")
-                || item->typeName() == QLatin1String("SubProject")) {
+                // The Properties child of a SubProject item is not a regular item.
+                || item->typeName() == QLatin1String("Properties")) {
             return;
         }
 
@@ -222,8 +224,17 @@ private:
             it.value()->apply(this);
         }
         m_parentItem = oldParentItem;
-        foreach (Item *child, item->children())
-            handleItem(child);
+        foreach (Item *child, item->children()) {
+            if (child->typeName() != QLatin1String("Export"))
+                handleItem(child);
+        }
+
+        // Properties that don't refer to an existing module with a matching Depends item
+        // only exist in the prototype, not in the instance.
+        // Example 1 - setting a property of an unknown module: Export { abc.def: true }
+        // Example 2 - setting a non-existing Export property: Export { blubb: true }
+        if (item->typeName() == QLatin1String("Export") && item->prototype())
+            handleItem(item->prototype());
     }
 
     void handle(VariantValue *) { /* only created internally - no need to check */ }
@@ -253,11 +264,8 @@ void ModuleLoader::handleProject(ModuleLoaderResult *loadResult,
         TopLevelProjectContext *topLevelProjectContext, Item *item, const QString &buildDirectory,
         const QSet<QString> &referencedFilePaths)
 {
-    if (!checkItemCondition(item))
-        return;
     auto *p = new ProjectContext;
     auto &projectContext = *p;
-    topLevelProjectContext->projects << &projectContext;
     projectContext.topLevelProject = topLevelProjectContext;
     projectContext.result = loadResult;
     projectContext.buildDirectory = buildDirectory;
@@ -269,6 +277,11 @@ void ModuleLoader::handleProject(ModuleLoaderResult *loadResult,
     const QString projectName = m_evaluator->stringValue(item, QLatin1String("name"));
     if (!projectName.isEmpty())
         overrideItemProperties(item, projectName, m_parameters.overriddenValuesTree());
+    if (!checkItemCondition(item)) {
+        delete p;
+        return;
+    }
+    topLevelProjectContext->projects << &projectContext;
     m_reader->pushExtraSearchPaths(readExtraSearchPaths(item) << item->file()->dirPath());
     projectContext.searchPathsStack = m_reader->extraSearchPathsStack();
     projectContext.item = item;
@@ -505,6 +518,7 @@ void ModuleLoader::handleProduct(ProductContext *productContext)
     dependsContext.productDependencies = &productContext->info.usedProducts;
     resolveDependencies(&dependsContext, item);
     addTransitiveDependencies(productContext, productContext->item);
+    copyGroupsFromModulesToProduct(*productContext);
     checkItemCondition(item);
 
     foreach (Item *child, item->children()) {
@@ -1636,6 +1650,34 @@ Item *ModuleLoader::createNonPresentModule(const QString &name, const QString &r
     }
     module->setProperty(QLatin1String("present"), VariantValue::create(false));
     return module;
+}
+
+void ModuleLoader::copyGroupsFromModuleToProduct(const ProductContext &productContext,
+                                                 const Item *modulePrototype)
+{
+    for (int i = 0; i < modulePrototype->children().count(); ++i) {
+        Item * const child = modulePrototype->children().at(i);
+        if (child->typeName() == QLatin1String("Group")) {
+            Item * const clonedGroup = child->clone();
+            clonedGroup->setScope(productContext.scope);
+            Item::addChild(productContext.item, clonedGroup);
+        }
+    }
+}
+
+void ModuleLoader::copyGroupsFromModulesToProduct(const ProductContext &productContext)
+{
+    foreach (const Item::Module &module, productContext.item->modules()) {
+        Item *prototype = module.item;
+        bool modulePassedValidation;
+        while ((modulePassedValidation = prototype->isPresentModule()
+                && !prototype->delayedError().hasError())
+                && prototype->prototype()) {
+            prototype = prototype->prototype();
+        }
+        if (modulePassedValidation)
+            copyGroupsFromModuleToProduct(productContext, prototype);
+    }
 }
 
 QString ModuleLoaderResult::ProductInfo::Dependency::uniqueName() const

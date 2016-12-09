@@ -33,7 +33,6 @@
 
 #include "forward_decls.h"
 #include "itempool.h"
-#include "qualifiedid.h"
 #include <logging/logger.h>
 #include <tools/setupprojectparameters.h>
 #include <tools/version.h>
@@ -59,6 +58,7 @@ class Evaluator;
 class Item;
 class ItemReader;
 class ProgressObserver;
+class QualifiedId;
 class ScriptEngine;
 
 struct ModuleLoaderResult
@@ -230,6 +230,9 @@ private:
                                 const QVariantMap &buildConfig);
     void addTransitiveDependencies(ProductContext *ctx, Item *item);
     Item *createNonPresentModule(const QString &name, const QString &reason, Item *module);
+    void copyGroupsFromModuleToProduct(const ProductContext &productContext,
+                                       const Item *modulePrototype);
+    void copyGroupsFromModulesToProduct(const ProductContext &productContext);
 
     ScriptEngine *m_engine;
     ItemPool *m_pool;

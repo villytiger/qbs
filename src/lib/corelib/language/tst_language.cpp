@@ -33,18 +33,23 @@
 #include "tst_language.h"
 
 #include <language/evaluator.h>
+#include <language/filecontext.h>
 #include <language/identifiersearch.h>
 #include <language/item.h>
 #include <language/itempool.h>
 #include <language/language.h>
+#include <language/propertymapinternal.h>
 #include <language/scriptengine.h>
+#include <language/value.h>
 #include <parser/qmljslexer_p.h>
 #include <parser/qmljsparser_p.h>
 #include <tools/scripttools.h>
 #include <tools/error.h>
+#include <tools/fileinfo.h>
 #include <tools/hostosinfo.h>
 #include <tools/profile.h>
 #include <tools/propertyfinder.h>
+#include <tools/settings.h>
 
 #include <QProcessEnvironment>
 
@@ -349,6 +354,55 @@ void qbs::Internal::TestLanguage::dependencyOnAllProfiles()
     QCOMPARE(exceptionCaught, false);
 }
 
+void TestLanguage::defaultValue()
+{
+    bool exceptionCaught = false;
+    try {
+        SetupProjectParameters params = defaultParameters;
+        params.setProjectFilePath(testProject("defaultvalue/egon.qbs"));
+        QFETCH(QString, prop1Value);
+        QVariantMap overridden;
+        if (!prop1Value.isEmpty())
+            overridden.insert("lower.prop1", prop1Value);
+        params.setOverriddenValues(overridden);
+        TopLevelProjectPtr project = loader->loadProject(params);
+        QVERIFY(project);
+        QHash<QString, ResolvedProductPtr> products = productsFromProject(project);
+        QCOMPARE(products.count(), 2);
+        const ResolvedProductPtr product = products.value("egon");
+        QVERIFY(product);
+        QStringList propertyName = QStringList() << "modules" << "lower" << "prop2";
+        QVariant propertyValue = getConfigProperty(product->moduleProperties->value(), propertyName);
+        QFETCH(QVariant, expectedProp2Value);
+        QCOMPARE(propertyValue, expectedProp2Value);
+        propertyName = QStringList() << "modules" << "lower" << "listProp";
+        propertyValue = getConfigProperty(product->moduleProperties->value(), propertyName);
+        QFETCH(QVariant, expectedListPropValue);
+        QEXPECT_FAIL("controlling property not overwritten", "QBS-845", Continue);
+        QCOMPARE(propertyValue.toStringList(), expectedListPropValue.toStringList());
+    }
+    catch (const ErrorInfo &e) {
+        exceptionCaught = true;
+        qDebug() << e.toString();
+    }
+    QCOMPARE(exceptionCaught, false);
+}
+
+void TestLanguage::defaultValue_data()
+{
+    QTest::addColumn<QString>("prop1Value");
+    QTest::addColumn<QVariant>("expectedProp2Value");
+    QTest::addColumn<QVariant>("expectedListPropValue");
+    QTest::newRow("controlling property with random value") << "random" << QVariant("withoutBlubb")
+            << QVariant(QStringList({"other", "other"}));
+    QTest::newRow("controlling property with blubb value") << "blubb" << QVariant("withBlubb")
+            << QVariant(QStringList({"blubb", "other", "blubb", "other"}));
+    QTest::newRow("controlling property with egon value") << "egon" << QVariant("withEgon")
+            << QVariant(QStringList({"egon", "other"}));
+    QTest::newRow("controlling property not overwritten") << "" << QVariant("withBlubb")
+            << QVariant(QStringList({"blubb", "other", "blubb", "other"}));
+}
+
 void TestLanguage::environmentVariable()
 {
     bool exceptionCaught = false;
@@ -412,8 +466,14 @@ void TestLanguage::erroneousFiles_data()
             << "Array element at index 1 is undefined. String expected.";
     QTest::newRow("undeclared_item")
             << "Item 'cpp' is not declared.";
-    QTest::newRow("undeclared_property")
+    QTest::newRow("undeclared_property_wrapper")
             << "Property 'doesntexist' is not declared.";
+    QTest::newRow("undeclared_property_in_export_item")
+            << "Property 'blubb' is not declared.";
+    QTest::newRow("undeclared_property_in_export_item2")
+            << "Item 'something' is not declared.";
+    QTest::newRow("undeclared_property_in_export_item3")
+            << "Property 'blubb' is not declared.";
     QTest::newRow("unknown_item_type")
             << "Unexpected item type 'Narf'";
     QTest::newRow("invalid_child_item_type")
@@ -434,6 +494,8 @@ void TestLanguage::erroneousFiles_data()
             << "The value '.*' of Project.minimumQbsVersion is not a valid version string.";
     QTest::newRow("properties-item-with-invalid-condition")
             << "TypeError: Result of expression 'cpp.nonexistingproperty'";
+    QTest::newRow("misused-inherited-property") << "Binding to non-item property";
+    QTest::newRow("undeclared_property_in_Properties_item") << "Item 'blubb' is not declared";
 }
 
 void TestLanguage::erroneousFiles()
@@ -451,7 +513,9 @@ void TestLanguage::erroneousFiles()
         }
         return;
     }
-    QFAIL("No error thrown on invalid input.");
+    QEXPECT_FAIL("misused-inherited-property", "QBS-847", Continue);
+    QEXPECT_FAIL("undeclared_property_in_Properties_item", "Too expensive to check", Continue);
+    QVERIFY(!"No error thrown on invalid input.");
 }
 
 void TestLanguage::exports()
@@ -800,6 +864,25 @@ void TestLanguage::idUsage()
     QVERIFY(!exceptionCaught);
 }
 
+void TestLanguage::importCollection()
+{
+    bool exceptionCaught = false;
+    try {
+        defaultParameters.setProjectFilePath(testProject("import-collection/project.qbs"));
+        const TopLevelProjectPtr project = loader->loadProject(defaultParameters);
+        QVERIFY(project);
+        QHash<QString, ResolvedProductPtr> products = productsFromProject(project);
+        const ResolvedProductConstPtr product = products.value("da product");
+        QCOMPARE(product->productProperties.value("targetName").toString(),
+                 QLatin1String("C1f1C1f2C2f1C2f2"));
+    }
+    catch (const ErrorInfo &e) {
+        exceptionCaught = true;
+        qDebug() << e.toString();
+    }
+    QVERIFY(!exceptionCaught);
+}
+
 void TestLanguage::invalidBindingInDisabledItem()
 {
     bool exceptionCaught = false;
@@ -954,6 +1037,9 @@ void TestLanguage::moduleProperties_data()
     QTest::newRow("list_property_that_references_product")
             << "listProp"
             << (QStringList() << "x" << "123");
+    QTest::newRow("list_property_depending_on_overridden_property")
+            << "listProp2"
+            << (QStringList() << "PRODUCT_STUFF" << "DEFAULT_STUFF" << "EXTRA_STUFF");
     QTest::newRow("cleanup") << QString() << QStringList();
 }
 
@@ -971,6 +1057,7 @@ void TestLanguage::moduleProperties()
     QStringList valueStrings;
     foreach (const QVariant &v, values)
         valueStrings += v.toString();
+    QEXPECT_FAIL("list_property_depending_on_overridden_property", "QBS-845", Continue);
     QCOMPARE(valueStrings, expectedValues);
 }
 
@@ -1310,6 +1397,10 @@ void TestLanguage::propertiesBlocks_data()
             << QString("dummy.defines")
             << (QStringList() << QString("OVERWRITTEN"))
             << QString();
+    QTest::newRow("conditional-depends")
+            << QString("dummy.defines")
+            << QStringList()
+            << QString();
     QTest::newRow("cleanup") << QString() << QStringList() << QString();
 }
 
@@ -1331,6 +1422,48 @@ void TestLanguage::propertiesBlocks()
         v = productPropertyValue(product, "someString");
         QCOMPARE(v.toString(), expectedStringValue);
     }
+}
+
+void TestLanguage::propertiesBlockInGroup()
+{
+    bool exceptionCaught = false;
+    try {
+        defaultParameters.setProjectFilePath(testProject("properties-block-in-group.qbs"));
+        const TopLevelProjectPtr project = loader->loadProject(defaultParameters);
+        QVERIFY(project);
+        QCOMPARE(project->allProducts().count(), 1);
+        const ResolvedProductConstPtr product = project->allProducts().first();
+        const auto groupIt = std::find_if(product->groups.constBegin(), product->groups.constEnd(),
+                [](const GroupConstPtr &g) { return g->name == "the group"; });
+        QVERIFY(groupIt != product->groups.constEnd());
+        const QVariantMap propertyMap = (*groupIt)->properties->value();
+        const QVariantList value = PropertyFinder().propertyValues(propertyMap, "dummy", "defines");
+        QStringList stringListValue;
+        std::transform(value.constBegin(), value.constEnd(), std::back_inserter(stringListValue),
+                       [](const QVariant &v) { return v.toString(); });
+        QCOMPARE(stringListValue, QStringList() << "BASEDEF" << "FEATURE_ENABLED");
+    } catch (const ErrorInfo &e) {
+        exceptionCaught = true;
+        qDebug() << e.toString();
+    }
+    QCOMPARE(exceptionCaught, false);
+}
+
+void TestLanguage::qbsPropertiesInProjectCondition()
+{
+    bool exceptionCaught = false;
+    try {
+        defaultParameters.setProjectFilePath(
+                    testProject("qbs-properties-in-project-condition.qbs"));
+        const TopLevelProjectPtr project = loader->loadProject(defaultParameters);
+        QVERIFY(project);
+        const QHash<QString, ResolvedProductPtr> products = productsFromProject(project);
+        QCOMPARE(products.count(), 0);
+    } catch (const ErrorInfo &e) {
+        exceptionCaught = true;
+        qDebug() << e.toString();
+    }
+    QCOMPARE(exceptionCaught, false);
 }
 
 void TestLanguage::qualifiedId()
@@ -1535,6 +1668,14 @@ void TestLanguage::wildcards_data()
             << (QStringList() << "*.h")
             << QStringList()
             << (QStringList() << "subdir/foo.h" << "subdir/bar.h");
+    QTest::newRow(QByteArray("non-existing absolute path"))
+            << useGroup
+            << QStringList()
+            << QString()
+            << QString("/dir")
+            << (QStringList() << "*.whatever")
+            << QStringList()
+            << QStringList();
 }
 
 void TestLanguage::wildcards()

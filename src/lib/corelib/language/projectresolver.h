@@ -31,9 +31,7 @@
 #ifndef PROJECTRESOLVER_H
 #define PROJECTRESOLVER_H
 
-#include "evaluator.h"
 #include "filetags.h"
-#include "language.h"
 #include "moduleloader.h"
 
 #include <logging/logger.h>
@@ -47,7 +45,6 @@ namespace Internal {
 
 class Evaluator;
 class Item;
-class ModuleLoader;
 class ProgressObserver;
 class ScriptEngine;
 class QualifiedIdSet;
@@ -92,17 +89,6 @@ private:
     struct ModuleContext
     {
         ResolvedModulePtr module;
-    };
-
-    struct ExportsContext
-    {
-        ExportsContext()
-            : item(0) {}
-
-        Item *item;
-        QVariantMap moduleValues;
-        QList<FileTaggerConstPtr> fileTaggers;
-        QSet<RulePtr> rules;
     };
 
     void checkCancelation() const;
@@ -157,12 +143,10 @@ private:
     ProgressObserver *m_progressObserver;
     ProductContext *m_productContext;
     ModuleContext *m_moduleContext;
-    ExportsContext *m_exportsContext;
     QMap<QString, ResolvedProductPtr> m_productsByName;
     QHash<QString, QList<ResolvedProductPtr> > m_productsByType;
     QHash<ResolvedProductPtr, Item *> m_productItemMap;
     mutable QHash<FileContextConstPtr, ResolvedFileContextPtr> m_fileContextMap;
-    QMap<QString, ExportsContext> m_exports;
     SetupProjectParameters m_setupParams;
 
     typedef void (ProjectResolver::*ItemFuncPtr)(Item *item, ProjectContext *projectContext);

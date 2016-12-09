@@ -31,9 +31,12 @@
 #include "language.h"
 
 #include "artifactproperties.h"
+#include "propertymapinternal.h"
 #include "resolvedfilecontext.h"
 #include "scriptengine.h"
+
 #include <buildgraph/artifact.h>
+#include <buildgraph/artifactset.h>
 #include <buildgraph/productbuilddata.h>
 #include <buildgraph/projectbuilddata.h>
 #include <buildgraph/rulegraph.h> // TODO: Move to language?
@@ -43,7 +46,7 @@
 #include <tools/buildgraphlocker.h>
 #include <tools/hostosinfo.h>
 #include <tools/error.h>
-#include <tools/propertyfinder.h>
+#include <tools/fileinfo.h>
 #include <tools/persistence.h>
 #include <tools/qbsassert.h>
 
@@ -1094,7 +1097,7 @@ QSet<QString> SourceWildCards::expandPatterns(const GroupConstPtr &group,
         QStringList parts = pattern.split(QLatin1Char('/'), QString::SkipEmptyParts);
         if (FileInfo::isAbsolute(pattern)) {
             QString rootDir;
-            if (HostOsInfo::isWindowsHost()) {
+            if (HostOsInfo::isWindowsHost() && pattern.at(0) != QLatin1Char('/')) {
                 rootDir = parts.takeFirst();
                 if (!rootDir.endsWith(QLatin1Char('/')))
                     rootDir.append(QLatin1Char('/'));

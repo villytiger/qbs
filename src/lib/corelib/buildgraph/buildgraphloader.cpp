@@ -39,10 +39,13 @@
 #include "projectbuilddata.h"
 #include "rulesevaluationcontext.h"
 #include "transformer.h"
+
 #include <language/artifactproperties.h>
 #include <language/language.h>
 #include <language/loader.h>
+#include <language/propertymapinternal.h>
 #include <logging/translator.h>
+#include <tools/fileinfo.h>
 #include <tools/persistence.h>
 #include <tools/propertyfinder.h>
 #include <tools/qbsassert.h>
@@ -332,16 +335,19 @@ void BuildGraphLoader::trackProjectChanges()
 
 bool BuildGraphLoader::hasEnvironmentChanged(const TopLevelProjectConstPtr &restoredProject) const
 {
-    for (QHash<QString, QString>::ConstIterator it = restoredProject->usedEnvironment.constBegin();
-         it != restoredProject->usedEnvironment.constEnd(); ++it) {
-        const QString var = it.key();
-        const QString oldValue = it.value();
-        const QString newValue = m_environment.value(var);
-        if (newValue != oldValue) {
-            m_logger.qbsDebug() << QString::fromLatin1("Environment variable '%1' changed "
-                "from '%2' to '%3'. Must re-resolve project.").arg(var, oldValue, newValue);
-            return true;
-        }
+    QProcessEnvironment oldEnv = restoredProject->environment;
+    QProcessEnvironment newEnv = m_environment;
+
+    // HACK. Valgrind screws up our null-build benchmarker otherwise.
+    // TODO: Think about a (module-provided) whitelist.
+    oldEnv.remove(QLatin1String("LD_PRELOAD"));
+    newEnv.remove(QLatin1String("LD_PRELOAD"));
+
+    if (oldEnv != newEnv) {
+        m_logger.qbsDebug() << "Set of environment variables changed. Must re-resolve project.";
+        m_logger.qbsTrace() << "old: " << restoredProject->environment.toStringList() << "\nnew:"
+                            << m_environment.toStringList();
+        return true;
     }
     return false;
 }
@@ -463,8 +469,8 @@ void BuildGraphLoader::checkAllProductsForChanges(const QList<ResolvedProductPtr
             continue;
         }
 
-        if (!sourceArtifactSetsAreEqual(restoredProduct->allFiles(),
-                                        newlyResolvedProduct->allFiles())) {
+        if (!sourceArtifactSetsAreEqual(restoredProduct->allEnabledFiles(),
+                                        newlyResolvedProduct->allEnabledFiles())) {
             m_logger.qbsDebug() << "File list of product '" << restoredProduct->uniqueName()
                                 << "' was changed.";
             if (!changedProducts.contains(restoredProduct))

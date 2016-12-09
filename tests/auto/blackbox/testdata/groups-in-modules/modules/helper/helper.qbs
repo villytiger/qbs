@@ -3,8 +3,9 @@ import qbs.FileInfo
 
 Module {
     Depends { name: "cpp" }
+    Depends { name: "helper2" }
 
-    additionalProductFileTags: ["diamond"]
+    additionalProductTypes: ["diamond"]
 
     Group {
         name: "Helper Sources"
@@ -16,6 +17,12 @@ Module {
         name: "Additional Chunk"
         prefix: path + "/"
         files: ["chunk.coal"]
+    }
+
+    Group {
+        name: "some other file from helper"
+        prefix: project.sourceDirectory + '/'
+        files: ["someotherfile2.txt"]
     }
 
     FileTagger {

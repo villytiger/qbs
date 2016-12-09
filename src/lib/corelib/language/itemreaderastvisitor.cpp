@@ -32,8 +32,11 @@
 
 #include "asttools.h"
 #include "builtindeclarations.h"
+#include "filecontext.h"
 #include "identifiersearch.h"
+#include "item.h"
 #include "itemreadervisitorstate.h"
+#include "value.h"
 
 #include <jsextensions/jsextensions.h>
 #include <parser/qmljsast_p.h>
@@ -79,7 +82,7 @@ bool ItemReaderASTVisitor::visit(AST::UiProgram *ast)
 {
     Q_UNUSED(ast);
     m_sourceValue.clear();
-    m_file->m_searchPaths = m_searchPaths;
+    m_file->setSearchPaths(m_searchPaths);
 
     if (Q_UNLIKELY(!ast->members->member))
         throw ErrorInfo(Tr::tr("No root item found in %1.").arg(m_file->filePath()));
@@ -126,6 +129,23 @@ void ItemReaderASTVisitor::collectPrototypes(const QString &path, const QString 
     m_visitorState.cacheDirectoryEntries(path, fileNames);
 }
 
+
+void ItemReaderASTVisitor::collectPrototypesAndJsCollections(const QString &path,
+        const QString &as, const CodeLocation &location, JsImportsHash &jsImports)
+{
+    collectPrototypes(path, as);
+    QDirIterator dirIter(path, QStringList(QLatin1String("*.js")));
+    while (dirIter.hasNext()) {
+        dirIter.next();
+        JsImport &jsImport = jsImports[as];
+        if (jsImport.scopeName.isNull()) {
+            jsImport.scopeName = as;
+            jsImport.location = location;
+        }
+        jsImport.filePaths.append(dirIter.filePath());
+    }
+}
+
 bool ItemReaderASTVisitor::visit(AST::UiImportList *uiImportList)
 {
     foreach (const QString &searchPath, m_searchPaths)
@@ -137,7 +157,7 @@ bool ItemReaderASTVisitor::visit(AST::UiImportList *uiImportList)
     collectPrototypes(path, QString());
 
     QSet<QString> importAsNames;
-    QHash<QString, JsImport> jsImports;
+    JsImportsHash jsImports;
 
     for (const AST::UiImportList *it = uiImportList; it; it = it->next) {
         const AST::UiImport *const import = it->import;
@@ -170,11 +190,11 @@ bool ItemReaderASTVisitor::visit(AST::UiImportList *uiImportList)
                         throw ErrorInfo(Tr::tr("Import of built-in extension '%1' "
                                                "must not have 'as' specifier.").arg(extensionName));
                     }
-                    if (Q_UNLIKELY(m_file->m_jsExtensions.contains(extensionName))) {
+                    if (Q_UNLIKELY(m_file->jsExtensions().contains(extensionName))) {
                         m_logger.printWarning(Tr::tr("Built-in extension '%1' already "
                                                      "imported.").arg(extensionName));
                     } else {
-                        m_file->m_jsExtensions << extensionName;
+                        m_file->addJsExtension(extensionName);
                     }
                     continue;
                 }
@@ -215,7 +235,8 @@ bool ItemReaderASTVisitor::visit(AST::UiImportList *uiImportList)
                                          import->fileNameToken.startColumn));
             filePath = fi.canonicalFilePath();
             if (fi.isDir()) {
-                collectPrototypes(filePath, as);
+                collectPrototypesAndJsCollections(filePath, as,
+                                                  toCodeLocation(import->fileNameToken), jsImports);
             } else {
                 if (filePath.endsWith(QLatin1String(".js"), Qt::CaseInsensitive)) {
                     JsImport &jsImport = jsImports[as];
@@ -243,18 +264,8 @@ bool ItemReaderASTVisitor::visit(AST::UiImportList *uiImportList)
                     if (fi.isDir()) {
                         // ### versioning, qbsdir file, etc.
                         const QString &resultPath = fi.absoluteFilePath();
-                        collectPrototypes(resultPath, as);
-
-                        QDirIterator dirIter(resultPath, QStringList(QLatin1String("*.js")));
-                        while (dirIter.hasNext()) {
-                            dirIter.next();
-                            JsImport &jsImport = jsImports[as];
-                            if (jsImport.scopeName.isNull()) {
-                                jsImport.scopeName = as;
-                                jsImport.location = toCodeLocation(import->firstSourceLocation());
-                            }
-                            jsImport.filePaths.append(dirIter.filePath());
-                        }
+                        collectPrototypesAndJsCollections(resultPath, as,
+                                toCodeLocation(import->importIdToken), jsImports);
                         found = true;
                         break;
                     }
@@ -271,7 +282,7 @@ bool ItemReaderASTVisitor::visit(AST::UiImportList *uiImportList)
     for (QHash<QString, JsImport>::const_iterator it = jsImports.constBegin();
          it != jsImports.constEnd(); ++it)
     {
-        m_file->m_jsImports += it.value();
+        m_file->addJsImport(it.value());
     }
 
     return false;
@@ -318,11 +329,11 @@ bool ItemReaderASTVisitor::visit(AST::UiObjectDefinition *ast)
                 = m_visitorState.readFile(baseTypeFileName, m_searchPaths, m_itemPool);
 
         inheritItem(item, rootItem);
-        if (rootItem->m_file->m_idScope) {
+        if (rootItem->m_file->idScope()) {
             // Make ids from the derived file visible in the base file.
             // ### Do we want to turn off this feature? It's QMLish but kind of strange.
-            ensureIdScope(item->m_file);
-            rootItem->m_file->m_idScope->setPrototype(item->m_file->m_idScope);
+            item->m_file->ensureIdScope(m_itemPool);
+            rootItem->m_file->idScope()->setPrototype(item->m_file->idScope());
         }
     }
 
@@ -392,8 +403,8 @@ bool ItemReaderASTVisitor::visit(AST::UiScriptBinding *ast)
         if (Q_UNLIKELY(!idExp || idExp->name.isEmpty()))
             throw ErrorInfo(Tr::tr("id: must be followed by identifier"));
         m_item->m_id = idExp->name.toString();
-        ensureIdScope(m_file);
-        m_file->m_idScope->m_properties[m_item->m_id] = ItemValue::create(m_item);
+        m_file->ensureIdScope(m_itemPool);
+        m_file->idScope()->m_properties[m_item->m_id] = ItemValue::create(m_item);
         return false;
     }
 
@@ -452,15 +463,18 @@ bool ItemReaderASTVisitor::visitStatement(AST::Statement *statement)
     m_sourceValue->setLocation(statement->firstSourceLocation().startLine,
                                statement->firstSourceLocation().startColumn);
 
-    bool usesBase, usesOuter;
+    bool usesBase, usesOuter, usesOriginal;
     IdentifierSearch idsearch;
     idsearch.add(QLatin1String("base"), &usesBase);
     idsearch.add(QLatin1String("outer"), &usesOuter);
+    idsearch.add(QLatin1String("original"), &usesOriginal);
     idsearch.start(statement);
     if (usesBase)
         m_sourceValue->m_flags |= JSSourceValue::SourceUsesBase;
     if (usesOuter)
         m_sourceValue->m_flags |= JSSourceValue::SourceUsesOuter;
+    if (usesOriginal)
+        m_sourceValue->m_flags |= JSSourceValue::SourceUsesOriginal;
     return false;
 }
 
@@ -556,14 +570,6 @@ void ItemReaderASTVisitor::inheritItem(Item *dst, const Item *src)
     }
 }
 
-void ItemReaderASTVisitor::ensureIdScope(const FileContextPtr &file)
-{
-    if (!file->m_idScope) {
-        file->m_idScope = Item::create(m_itemPool);
-        file->m_idScope->m_typeName = QLatin1String("IdScope");
-    }
-}
-
 void ItemReaderASTVisitor::setupAlternatives(Item *item)
 {
     QList<Item *>::iterator it = item->m_children.begin();
@@ -606,8 +612,12 @@ private:
             if (b == m_propertiesBlock && it.key() == QLatin1String("condition"))
                 continue;
             if (it.value()->type() == Value::ItemValueType) {
-                apply(a->itemProperty(it.key(), true)->item(),
-                      it.value().staticCast<ItemValue>()->item());
+                ItemValuePtr aval = a->itemProperty(it.key());
+                if (!aval) {
+                    aval = ItemValue::create(Item::create(a->pool()), true);
+                    a->setProperty(it.key(), aval);
+                }
+                apply(aval->item(), it.value().staticCast<ItemValue>()->item());
             } else if (it.value()->type() == Value::JSSourceValueType) {
                 ValuePtr aval = a->property(it.key());
                 if (Q_UNLIKELY(aval && aval->type() != Value::JSSourceValueType))
@@ -626,7 +636,7 @@ private:
     {
         QBS_ASSERT(!value || value->file() == conditionalValue->file(), return);
         if (!value) {
-            value = JSSourceValue::create();
+            value = JSSourceValue::create(true);
             value->setFile(conditionalValue->file());
             item->setProperty(propertyName, value);
             static const QString baseKeyword = QLatin1String("base");

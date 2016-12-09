@@ -32,8 +32,8 @@
 #define QBS_JSIMPORTS_H
 
 #include <tools/codelocation.h>
+
 #include <QHash>
-#include <QSet>
 #include <QStringList>
 
 namespace qbs {
@@ -53,7 +53,7 @@ public:
     QStringList filePaths;
     CodeLocation location;
 };
-inline uint qHash(const JsImport &jsi) { return qHash(jsi.location.toString()); }
+inline uint qHash(const JsImport &jsi) { return qHash(jsi.scopeName); }
 
 typedef QList<JsImport> JsImports;
 

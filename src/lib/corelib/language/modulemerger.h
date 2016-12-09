@@ -32,11 +32,12 @@
 #define QBS_MODULEMERGER_H
 
 #include "item.h"
+#include "qualifiedid.h"
+
 #include <logging/logger.h>
 
 #include <QHash>
 #include <QSet>
-#include <QStringList>
 
 namespace qbs {
 namespace Internal {
@@ -53,13 +54,14 @@ private:
     void mergeOutProps(Item::PropertyMap *dst, const Item::PropertyMap &src);
     void pullListProperties(Item::PropertyMap *dst, Item *instance);
     void appendPrototypeValueToNextChain(Item *moduleProto, const QString &propertyName,
-            const ValuePtr &sv) const;
+            const ValuePtr &sv);
     static ValuePtr lastInNextChain(const ValuePtr &v);
 
     const Logger &m_logger;
     Item * const m_rootItem;
     Item *m_mergedModuleItem;
-    const QStringList m_moduleName;
+    Item *m_clonedModulePrototype = nullptr;
+    const QualifiedId m_moduleName;
     QHash<ValuePtr, PropertyDeclaration> m_decls;
     QSet<const Item *> m_seenInstancesTopDown;
     QSet<const Item *> m_seenInstancesBottomUp;

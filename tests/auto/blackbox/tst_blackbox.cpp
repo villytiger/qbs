@@ -337,6 +337,16 @@ void TestBlackbox::zip_data()
     QTest::newRow("jar") << "jar";
 }
 
+void TestBlackbox::zipInvalid()
+{
+    QDir::setCurrent(testDataDir + "/archiver");
+    QbsRunParameters params(QStringList() << "archiver.type:zip"
+                            << "archiver.command:/bin/something");
+    params.expectFailure = true;
+    QVERIFY(runQbs(params) != 0);
+    QVERIFY2(m_qbsStderr.contains("Unknown zip tool 'something'"), m_qbsStderr.constData());
+}
+
 void TestBlackbox::android()
 {
     QFETCH(QString, projectDir);
@@ -582,6 +592,22 @@ void TestBlackbox::clean()
     foreach (const QString &symLink, symlinks)
         QVERIFY2(!symlinkExists(symLink), qPrintable(symLink));
 
+    // Remove all, with a forced re-resolve in between.
+    // This checks that rescuable artifacts are also removed.
+    QCOMPARE(runQbs(QbsRunParameters(QStringList() << "cpp.optimization:none")), 0);
+    QVERIFY(regularFileExists(appObjectFilePath));
+    QVERIFY(regularFileExists(appExeFilePath));
+    QCOMPARE(runQbs(QbsRunParameters("resolve", QStringList() << "cpp.optimization:fast")), 0);
+    QVERIFY(regularFileExists(appObjectFilePath));
+    QVERIFY(regularFileExists(appExeFilePath));
+    QCOMPARE(runQbs(QbsRunParameters(QLatin1String("clean"), QStringList("--all-artifacts"))), 0);
+    QVERIFY(!QFile(appObjectFilePath).exists());
+    QVERIFY(!QFile(appExeFilePath).exists());
+    QVERIFY(!QFile(depObjectFilePath).exists());
+    QVERIFY(!QFile(depLibFilePath).exists());
+    foreach (const QString &symLink, symlinks)
+        QVERIFY2(!symlinkExists(symLink), qPrintable(symLink));
+
     // Dry run.
     QCOMPARE(runQbs(), 0);
     QVERIFY(regularFileExists(appObjectFilePath));
@@ -626,6 +652,13 @@ void TestBlackbox::clean()
     QVERIFY(regularFileExists(depLibFilePath));
     foreach (const QString &symLink, symlinks)
         QVERIFY2(symlinkExists(symLink), qPrintable(symLink));
+}
+
+void TestBlackbox::concurrentExecutor()
+{
+    QDir::setCurrent(testDataDir + "/concurrent-executor");
+    QCOMPARE(runQbs(QStringList() << "-j" << "2"), 0);
+    QVERIFY2(!m_qbsStderr.contains("ASSERT"), m_qbsStderr.constData());
 }
 
 void TestBlackbox::renameDependency()
@@ -817,6 +850,35 @@ void TestBlackbox::trackExternalProductChanges()
     QVERIFY(!m_qbsStdout.contains("compiling environmentChange.cpp"));
     QVERIFY(!m_qbsStdout.contains("compiling jsFileChange.cpp"));
     QVERIFY(m_qbsStdout.contains("compiling fileExists.cpp"));
+
+    rmDirR(relativeBuildDir());
+    Settings s((QString()));
+    const Profile profile(profileName(), &s);
+    const QStringList toolchainTypes = profile.value("qbs.toolchain").toStringList();
+    if (!toolchainTypes.contains("gcc"))
+        QSKIP("Need GCC-like compiler to run this test");
+    params.environment = QProcessEnvironment::systemEnvironment();
+    params.environment.insert("INCLUDE_PATH_TEST", "1");
+    params.expectFailure = true;
+    QVERIFY(runQbs(params) != 0);
+    QVERIFY2(m_qbsStderr.contains("hiddenheaderqbs.h"), m_qbsStderr.constData());
+    params.environment.insert("CPLUS_INCLUDE_PATH",
+                              QDir::toNativeSeparators(QDir::currentPath() + "/hidden"));
+    params.expectFailure = false;
+    QCOMPARE(runQbs(params), 0);
+}
+
+void TestBlackbox::trackGroupConditionChange()
+{
+    QbsRunParameters params;
+    params.expectFailure = true;
+    QDir::setCurrent(testDataDir + "/group-condition-change");
+    QVERIFY(runQbs(params) != 0);
+    QVERIFY(m_qbsStderr.contains("jibbetnich"));
+
+    params.arguments = QStringList("project.kaputt:false");
+    params.expectFailure = false;
+    QCOMPARE(runQbs(params), 0);
 }
 
 void TestBlackbox::trackRemoveFile()
@@ -1602,7 +1664,7 @@ void TestBlackbox::java()
         QVERIFY2(stdOut.contains("Flying!"), stdOut.constData());
         QVERIFY2(stdOut.contains("Flying (this is a space ship)!"), stdOut.constData());
         QVERIFY2(stdOut.contains("Sailing!"), stdOut.constData());
-        QVERIFY2(stdOut.contains("Native code performing complex internal combustion process (0x"),
+        QVERIFY2(stdOut.contains("Native code performing complex internal combustion process ("),
                  stdOut.constData());
     }
 
@@ -2492,7 +2554,7 @@ static bool haveWiX(const Profile &profile)
     regKeys << QLatin1String("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows Installer XML\\")
             << QLatin1String("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Installer XML\\");
 
-    const QStringList versions = QStringList() << "4.0" << "3.9" << "3.8" << "3.7"
+    const QStringList versions = QStringList() << "4.0" << "3.10" << "3.9" << "3.8" << "3.7"
                                                << "3.6" << "3.5" << "3.0" << "2.0";
 
     QStringList paths = QProcessEnvironment::systemEnvironment().value("PATH")
@@ -2786,6 +2848,11 @@ void TestBlackbox::groupsInModules()
     QCOMPARE(runQbs(params), 0);
     QVERIFY(m_qbsStdout.contains("compile rock.coal => rock.diamond"));
     QVERIFY(m_qbsStdout.contains("compile chunk.coal => chunk.diamond"));
+    QVERIFY(m_qbsStdout.contains("compiling helper2.c"));
+    QVERIFY(!m_qbsStdout.contains("compiling helper3.c"));
+    QVERIFY(m_qbsStdout.contains("compiling helper4.c"));
+    QVERIFY(m_qbsStdout.contains("compiling helper5.c"));
+    QVERIFY(!m_qbsStdout.contains("compiling helper6.c"));
 
     QCOMPARE(runQbs(params), 0);
     QVERIFY(!m_qbsStdout.contains("compile rock.coal => rock.diamond"));

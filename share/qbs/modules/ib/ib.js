@@ -28,6 +28,7 @@
 **
 ****************************************************************************/
 
+var BundleTools = loadExtension("qbs.BundleTools");
 var DarwinTools = loadExtension("qbs.DarwinTools");
 var File = loadExtension("qbs.File");
 var FileInfo = loadExtension("qbs.FileInfo");
@@ -112,9 +113,9 @@ function ibtooldArguments(product, inputs, outputs, overrideOutput) {
 
     // --target-device and -output-partial-info-plist were introduced in Xcode 6.0 for ibtool
     if (ModUtils.moduleProperty(product, "ibtoolVersionMajor") >= 6 || compilingAssetCatalogs) {
-        if (outputs && outputs.partial_infoplist) {
-            args.push("--output-partial-info-plist", outputs.partial_infoplist[0].filePath);
-        }
+        args.push("--output-partial-info-plist", (outputs && outputs.partial_infoplist)
+                  ? outputs.partial_infoplist[0].filePath
+                  : "/dev/null");
 
         if (product.moduleProperty("qbs", "targetOS").contains("osx"))
             args.push("--target-device", "mac");
@@ -137,7 +138,8 @@ function ibtooldArguments(product, inputs, outputs, overrideOutput) {
             args.push("--compile", outputs.compiled_ibdoc[0].filePath);
 
         if (outputs.compiled_assetcatalog)
-            args.push("--compile", ModUtils.moduleProperty(product, "actoolOutputDirectory"));
+            args.push("--compile",
+                      BundleTools.destinationDirectoryForResource(product, inputs.assetcatalog[0]));
     }
 
     for (i in allInputs)
@@ -162,7 +164,8 @@ function actoolOutputArtifacts(product, inputs) {
     try {
         // actool has no --dry-run option (rdar://21786925),
         // so compile to a fake temporary directory in order to extract the list of output files
-        var outputDirectory = ModUtils.moduleProperty(product, "actoolOutputDirectory");
+        var outputDirectory = BundleTools.destinationDirectoryForResource(product,
+                                                                          inputs.assetcatalog[0]);
         var fakeOutputDirectory = createTemporaryDirectory();
 
         // Last --output-format argument overrides any previous ones

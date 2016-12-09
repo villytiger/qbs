@@ -101,6 +101,7 @@ private slots:
     void changeInDisabledProduct();
     void checkProjectFilePath();
     void clean();
+    void concurrentExecutor();
     void dependenciesProperty();
     void dynamicMultiplexRule();
     void dynamicRuleOutputs();
@@ -174,6 +175,7 @@ private slots:
     void trackAddMocInclude();
     void trackAddProduct();
     void trackExternalProductChanges();
+    void trackGroupConditionChange();
     void trackRemoveFile();
     void trackRemoveFileTag();
     void trackRemoveProduct();
@@ -183,6 +185,7 @@ private slots:
     void wildcardRenaming();
     void zip();
     void zip_data();
+    void zipInvalid();
 
 private:
     QString findArchiver(const QString &fileName, int *status = nullptr);
